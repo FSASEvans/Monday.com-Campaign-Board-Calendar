@@ -298,7 +298,16 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
 }
 .aud-toggle-btn:last-child { border-right: none; }
 .aud-toggle-btn:hover { background: var(--white); color: var(--text-1); }
-.aud-toggle-btn.active { background: var(--red); color: #fff; }
+/* All — default red active */
+.aud-toggle-btn.active                          { background: var(--navy); color: #fff; }
+/* New — teal active */
+.aud-toggle-btn.aud-new:not(.active):hover      { background: #CCFBF1; color: #134E4A; }
+.aud-toggle-btn.aud-new.active                  { background: #0D9488; color: #fff; border-color: #0D9488; }
+/* Existing — violet active */
+.aud-toggle-btn.aud-existing:not(.active):hover { background: #EDE9FE; color: #4C1D95; }
+.aud-toggle-btn.aud-existing.active             { background: #7C3AED; color: #fff; border-color: #7C3AED; }
+/* Audience color dot — small indicator on calendar bars */
+.aud-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
 /* ─── VALIDATION BANNER ─── */
 .val-banner { background: var(--amber-bg); border-bottom: 1px solid #FCD34D; padding: 8px 32px; font-size: 12px; color: var(--amber-dk); display: none; align-items: center; gap: 6px; }
@@ -401,8 +410,8 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
     <span class="f-lbl">Audience</span>
     <div class="aud-toggle">
       <button class="aud-toggle-btn active" data-aud="all">All</button>
-      <button class="aud-toggle-btn" data-aud="new">New</button>
-      <button class="aud-toggle-btn" data-aud="existing">Existing</button>
+      <button class="aud-toggle-btn aud-new" data-aud="new">New</button>
+      <button class="aud-toggle-btn aud-existing" data-aud="existing">Existing</button>
     </div>
   </div>
 
@@ -500,7 +509,7 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
    ════════════════════════════════════════════════════ */
 
 const DATA_FILE = './data/latest-export.xlsx';
-const BRAND_COL_CANDIDATES = ['Brand', 'Brand Name', 'Business Unit'];
+const BRAND_COL_CANDIDATES = ['Brands', 'Brand', 'Brand Name', 'Business Unit'];
 const DAY_MS = 86400000;
 
 const BRAND_COLORS = [
@@ -610,38 +619,53 @@ function parseRows(rows) {
   return out;
 }
 
-// FSA brand abbreviation → full name map
+// FSA brand abbreviation → full name map (covers Monday.com export formats)
 const BRAND_NAMES = {
-  'GM': 'Grease Monkey',
+  // Abbreviations
+  'GM':  'Grease Monkey',
   'ALF': 'American Lube Fast',
-  'ALF ': 'American Lube Fast',
-  'UE': "Uncle Ed's",
-  "Uncle Ed's": "Uncle Ed's",
-  'SD': 'SpeeDee',
+  'UE':  "Uncle Ed's",
+  'SD':  'SpeeDee',
   'SPEEDEE': 'SpeeDee',
-  'SPEE DEE': 'SpeeDee',
-  'KK': 'Kwik Kar',
-  'KWIK KAR': 'Kwik Kar',
+  'KK':  'Kwik Kar',
   'EOC': 'Economy Oil Change',
-  'ECONOMY': 'Economy Oil Change',
-  'HA': 'Herbert Automotive',
-  'HERBERT': 'Herbert Automotive',
-  'GREASE MONKEY': 'Grease Monkey',
-  'AMERICAN LUBE FAST': 'American Lube Fast',
+  'HA':  'Herbert Automotive',
+  // Common long-form variants (normalized to uppercase for lookup)
+  'GREASE MONKEY':       'Grease Monkey',
+  'AMERICAN LUBE FAST':  'American Lube Fast',
+  'AMERICAN LUBE':       'American Lube Fast',
+  "UNCLE ED'S":          "Uncle Ed's",
+  'UNCLE EDS':           "Uncle Ed's",
+  'SPEE DEE':            'SpeeDee',
+  'KWIK KAR':            'Kwik Kar',
+  'ECONOMY OIL CHANGE':  'Economy Oil Change',
+  'ECONOMY OIL':         'Economy Oil Change',
+  'HERBERT AUTOMOTIVE':  'Herbert Automotive',
+  'HERBERT':             'Herbert Automotive',
 };
 
 function expandBrand(raw) {
   if (!raw) return '';
-  const key = raw.trim().toUpperCase();
-  // Exact match first
-  if (BRAND_NAMES[key]) return BRAND_NAMES[key];
-  // Original-case match
-  if (BRAND_NAMES[raw.trim()]) return BRAND_NAMES[raw.trim()];
-  // Return as-is if already a full name or unknown
-  return raw.trim();
+  const trimmed = raw.trim();
+  const key = trimmed.toUpperCase();
+  if (BRAND_NAMES[key])        return BRAND_NAMES[key];
+  if (BRAND_NAMES[trimmed])    return BRAND_NAMES[trimmed];
+  return trimmed; // already full name or unknown
 }
 
-function resolveBrand(m) { for (const k of BRAND_COL_CANDIDATES) if (m[k]) return expandBrand(tv(m[k])); return ''; }
+// resolveBrand: reads the Brands/Brand column value, handles comma-separated lists
+// (some Monday.com boards list "GM, ALF" in one cell — take the first token)
+function resolveBrand(m) {
+  for (const k of BRAND_COL_CANDIDATES) {
+    const raw = tv(m[k]);
+    if (raw) {
+      // Take first comma-separated token if multiple brands listed
+      const first = raw.split(',')[0].trim();
+      return expandBrand(first);
+    }
+  }
+  return '';
+}
 function pd(v) { if (!v) return null; if (v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate()); const p = new Date(v); return isNaN(p) ? null : new Date(p.getFullYear(), p.getMonth(), p.getDate()); }
 function tv(v) { return v == null ? '' : String(v).trim(); }
 function tokens(v) { return tv(v).split(',').map(x => x.trim()).filter(Boolean); }
@@ -650,7 +674,25 @@ function fmtDate(d) { return d ? d.toLocaleDateString('en-US', { month: 'short',
 function fmtDateShort(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ── Brand color assignment ── */
+// Audience color system — independent of brand colors
+// New = teal, Existing = violet, Both/mixed = amber, None = neutral gray
+const AUD_COLORS = {
+  new:      { bg: '#CCFBF1', border: '#0D9488', text: '#134E4A', btnBg: '#0D9488', btnText: '#fff' },
+  existing: { bg: '#EDE9FE', border: '#7C3AED', text: '#4C1D95', btnBg: '#7C3AED', btnText: '#fff' },
+  both:     { bg: '#FEF3C7', border: '#D97706', text: '#92400E', btnBg: '#D97706', btnText: '#fff' },
+  none:     { bg: null, border: null, text: null }, // falls through to brand color
+};
+
+function getAudType(c) {
+  if (!c.audience || c.audience.length === 0) return 'none';
+  const lower = c.audience.map(a => a.toLowerCase()).join(' ');
+  const isNew = /new|conquest|prospect/.test(lower);
+  const isExisting = /exist|retain|loyal|current|return/.test(lower);
+  if (isNew && isExisting) return 'both';
+  if (isNew) return 'new';
+  if (isExisting) return 'existing';
+  return 'none';
+}
 function assignBrandColors() {
   const brands = uniq(S.campaigns.map(c => c.brand));
   brands.forEach((b, i) => {
@@ -805,11 +847,42 @@ function toggleDd(ddId, trigId) {
 function buildLegend(brands) {
   const strip = $('legendStrip');
   strip.innerHTML = '';
-  brands.forEach((b, i) => {
-    const color = SWATCH_COLORS[i % SWATCH_COLORS.length];
+
+  // Brand swatches
+  if (brands.length) {
+    const brandLabel = document.createElement('span');
+    brandLabel.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-m);letter-spacing:.06em;text-transform:uppercase;margin-right:4px;';
+    brandLabel.textContent = 'Brand:';
+    strip.appendChild(brandLabel);
+    brands.forEach((b, i) => {
+      const color = SWATCH_COLORS[i % SWATCH_COLORS.length];
+      const item = document.createElement('div');
+      item.className = 'leg-item';
+      item.innerHTML = `<span class="leg-swatch" style="background:${color}"></span><span>${esc(b)}</span>`;
+      strip.appendChild(item);
+    });
+  }
+
+  // Separator
+  const sep = document.createElement('div');
+  sep.style.cssText = 'width:1px;height:16px;background:var(--border);margin:0 6px;flex-shrink:0;';
+  strip.appendChild(sep);
+
+  // Audience swatches
+  const audLabel = document.createElement('span');
+  audLabel.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-m);letter-spacing:.06em;text-transform:uppercase;margin-right:4px;';
+  audLabel.textContent = 'Audience:';
+  strip.appendChild(audLabel);
+
+  [
+    { label: 'New',       color: '#0D9488', border: '#0D9488', bg: '#CCFBF1' },
+    { label: 'Existing',  color: '#7C3AED', border: '#7C3AED', bg: '#EDE9FE' },
+    { label: 'Both',      color: '#D97706', border: '#D97706', bg: '#FEF3C7' },
+    { label: 'Not specified', color: 'var(--border-mid)', border: 'var(--border-mid)', bg: 'var(--surface)' },
+  ].forEach(({ label, color, bg }) => {
     const item = document.createElement('div');
     item.className = 'leg-item';
-    item.innerHTML = `<span class="leg-swatch" style="background:${color}"></span><span>${esc(b)}</span>`;
+    item.innerHTML = `<span class="leg-swatch" style="background:${bg};border:1.5px solid ${color};border-radius:3px;"></span><span>${label}</span>`;
     strip.appendChild(item);
   });
 }
@@ -1007,28 +1080,52 @@ function renderMonth() {
     const weekPlaced = placed.filter(p => p.row !== 'overflow' && p.ei >= week * 7 && p.si <= week * 7 + 6);
     weekPlaced.forEach(({ c, si, ei, row }) => {
       // Clip to this week's columns
-      const colStart = Math.max(si, week * 7) - week * 7;        // 0–6
-      const colEnd   = Math.min(ei, week * 7 + 6) - week * 7;    // 0–6
+      const colStart    = Math.max(si, week * 7) - week * 7;   // 0–6
+      const colEnd      = Math.min(ei, week * 7 + 6) - week * 7; // 0–6
       const isRealStart = si >= week * 7;
       const isRealEnd   = ei <= week * 7 + 6;
+      const isContinued = !isRealStart; // wraps from a prior week row
+      const isSingleDay = (si === ei);
 
-      const top = CELL_HEADER_H + row * (EVT_H + EVT_GAP);
-      // left% = colStart/7 * 100, width% = (colEnd - colStart + 1)/7 * 100
-      const leftPct = (colStart / 7) * 100;
-      const widthPct = ((colEnd - colStart + 1) / 7) * 100;
+      const topPx      = CELL_HEADER_H + row * (EVT_H + EVT_GAP);
+      const leftPct    = (colStart / 7) * 100;
+      const widthPct   = ((colEnd - colStart + 1) / 7) * 100;
+      const padL       = isRealStart ? 3 : 0;
+      const padR       = isRealEnd   ? 3 : 0;
 
-      const colorClass = S.brandColorMap[c.brand] || 'brand-8';
+      // Audience color: overrides brand color as a left-border accent + light bg tint
+      const audType  = getAudType(c);
+      const audColor = AUD_COLORS[audType];
+      const brandClass = S.brandColorMap[c.brand] || 'brand-8';
+
       const bar = document.createElement('div');
-      bar.className = `evt-bar ${colorClass}`;
+      // Use brand class for base colors; audience tints override via inline style when applicable
+      bar.className = `evt-bar ${audType !== 'none' ? '' : brandClass}`;
+
+      // Audience-based color override (teal/violet/amber tint)
+      let inlineColor = '';
+      if (audType !== 'none' && audColor.bg) {
+        inlineColor = `background:${audColor.bg}; border-left-color:${audColor.border}; color:${audColor.text};`;
+      }
+
+      // Corner rounding: square the edges that connect to continuation
+      const rTL = isRealStart  ? '4px' : '0';
+      const rBL = isRealStart  ? '4px' : '0';
+      const rTR = isRealEnd    ? '4px' : '0';
+      const rBR = isRealEnd    ? '4px' : '0';
+
       bar.style.cssText = `
         position: absolute;
-        top: ${top}px;
-        left: calc(${leftPct}% + ${isRealStart ? 3 : 0}px);
-        width: calc(${widthPct}% - ${isRealStart ? 3 : 0}px - ${isRealEnd ? 3 : 0}px);
+        top: ${topPx}px;
+        left: calc(${leftPct}% + ${padL}px);
+        width: calc(${widthPct}% - ${padL}px - ${padR}px);
         height: ${EVT_H}px;
-        border-radius: ${isRealStart ? '4px' : '0'} ${isRealEnd ? '4px' : '0'} ${isRealEnd ? '4px' : '0'} ${isRealStart ? '4px' : '0'};
-        display: flex; align-items: center; gap: 5px;
-        padding: 0 7px;
+        border-radius: ${rTL} ${rTR} ${rBR} ${rBL};
+        border-left: 3px solid transparent;
+        display: flex; align-items: center;
+        justify-content: ${isSingleDay ? 'center' : 'flex-start'};
+        gap: 4px;
+        padding: 0 ${isSingleDay ? 4 : 7}px;
         overflow: hidden;
         cursor: pointer;
         z-index: 2;
@@ -1036,14 +1133,33 @@ function renderMonth() {
         white-space: nowrap;
         transition: filter .12s, transform .08s;
         box-sizing: border-box;
+        ${inlineColor}
       `;
-      if (isRealStart) {
-        bar.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(c.name)}</span>`;
-        if (si !== ei) {
-          bar.innerHTML += `<span style="font-size:10px;opacity:.7;flex-shrink:0">${fmtDateShort(c.startDate)}–${fmtDateShort(c.endDate)}</span>`;
-        }
+
+      // Audience color dot
+      const dotColor = audType === 'new' ? '#0D9488' : audType === 'existing' ? '#7C3AED' : audType === 'both' ? '#D97706' : null;
+      if (dotColor) {
+        const dot = document.createElement('span');
+        dot.className = 'aud-dot';
+        dot.style.cssText = `background:${dotColor}; flex-shrink:0;`;
+        bar.appendChild(dot);
       }
-      bar.addEventListener('mouseenter', () => { bar.style.filter = 'brightness(0.9)'; bar.style.transform = 'translateY(-1px)'; });
+
+      // Name: always shown — prefix with ◀ arrow if this is a continuation from prior week
+      const nameSpan = document.createElement('span');
+      nameSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;';
+      nameSpan.textContent = (isContinued ? '← ' : '') + c.name;
+      bar.appendChild(nameSpan);
+
+      // Date range on the end segment (if multi-day and has room)
+      if (!isSingleDay && isRealEnd && (colEnd - colStart) >= 1) {
+        const dateSpan = document.createElement('span');
+        dateSpan.style.cssText = 'font-size:10px; opacity:.7; flex-shrink:0; margin-left:4px;';
+        dateSpan.textContent = `${fmtDateShort(c.startDate)}–${fmtDateShort(c.endDate)}`;
+        bar.appendChild(dateSpan);
+      }
+
+      bar.addEventListener('mouseenter', () => { bar.style.filter = 'brightness(0.88)'; bar.style.transform = 'translateY(-1px)'; });
       bar.addEventListener('mouseleave', () => { bar.style.filter = ''; bar.style.transform = ''; });
       bar.addEventListener('click', () => openDetail(c));
       weekWrap.appendChild(bar);
@@ -1087,10 +1203,17 @@ function renderQuarter() {
       body.innerHTML = '<div class="q-empty">No campaigns</div>';
     } else {
       evts.forEach(c => {
-        const colorClass = S.brandColorMap[c.brand] || 'brand-8';
+        const audType  = getAudType(c);
+        const audColor = AUD_COLORS[audType];
+        const brandClass = S.brandColorMap[c.brand] || 'brand-8';
         const ev = document.createElement('div');
-        ev.className = `q-evt ${colorClass}`;
-        ev.innerHTML = `<div class="q-evt-name">${esc(c.name)}</div><div class="q-evt-dates">${fmtDateShort(c.startDate)} – ${fmtDateShort(c.endDate)} · ${esc(c.brand)}</div>`;
+        ev.className = `q-evt ${audType !== 'none' ? '' : brandClass}`;
+        if (audType !== 'none' && audColor.bg) {
+          ev.style.cssText = `background:${audColor.bg}; border-left-color:${audColor.border}; color:${audColor.text};`;
+        }
+        const dotColor = audType === 'new' ? '#0D9488' : audType === 'existing' ? '#7C3AED' : audType === 'both' ? '#D97706' : null;
+        const dot = dotColor ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotColor};margin-right:4px;vertical-align:middle;flex-shrink:0"></span>` : '';
+        ev.innerHTML = `<div class="q-evt-name">${dot}${esc(c.name)}</div><div class="q-evt-dates">${fmtDateShort(c.startDate)} – ${fmtDateShort(c.endDate)} · ${esc(c.brand || '—')}</div>`;
         ev.addEventListener('click', () => openDetail(c));
         body.appendChild(ev);
       });
