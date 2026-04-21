@@ -3,68 +3,1065 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CMO Campaign Calendar</title>
-  <link rel="stylesheet" href="./styles.css">
+  <title>FullSpeed Automotive — CMO Campaign Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* ─── DESIGN SYSTEM (matches fsasevans.github.io/ServicesByLocationDMA) ─── */
+:root {
+  --red: #C8102E; --red-pale: #FDF2F4; --red-light: #F5E7EA;
+  --navy: #1F2937; --charcoal: #374151;
+  --text-1: #111827; --text-2: #4B5563; --text-m: #9CA3AF;
+  --border: #E5E7EB; --border-mid: #D1D5DB;
+  --bg: #F9FAFB; --white: #FFFFFF; --surface: #F3F4F6;
+  --green: #059669; --green-bg: #ECFDF5; --green-dk: #065F46;
+  --amber: #D97706; --amber-bg: #FFFBEB; --amber-dk: #92400E;
+  --blue: #2563EB; --blue-bg: #EFF6FF; --blue-dk: #1E40AF;
+  --purple: #7C3AED; --purple-bg: #F5F3FF;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,.12);
+  --shadow-xl: 0 20px 50px rgba(0,0,0,.18), 0 8px 16px rgba(0,0,0,.08);
+  --r: 8px; --r-sm: 5px;
+  --font: 'DM Sans', sans-serif;
+  --font-b: 'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+/* ─── HEADER ─── */
+.hdr {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 0 32px; display: flex; align-items: center; justify-content: space-between;
+  height: 68px; position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow-sm);
+}
+.hdr-l { display: flex; align-items: center; gap: 16px; }
+.logo {
+  width: 38px; height: 38px; background: var(--red); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo svg { width: 22px; height: 22px; fill: white; }
+.hdr-div { width: 1px; height: 28px; background: var(--border); }
+.hdr-title { font-family: var(--font); font-weight: 700; font-size: 17px; letter-spacing: -.01em; line-height: 1.2; }
+.hdr-title span { color: var(--red); }
+.hdr-sub { font-size: 11px; color: var(--text-m); font-weight: 500; margin-top: 1px; }
+.hdr-r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hdr-pill {
+  background: var(--red-pale); color: var(--red); font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--red-light);
+  font-family: var(--font); white-space: nowrap;
+}
+.refresh-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; color: var(--text-2);
+  font-weight: 500; white-space: nowrap;
+}
+.refresh-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--green-bg);
+}
+.refresh-badge strong { color: var(--text-1); font-weight: 600; }
+.hdr-nav { display: flex; align-items: center; gap: 4px; }
+.nav-btn {
+  background: var(--white); border: 1px solid var(--border-mid); color: var(--text-2);
+  font-family: var(--font-b); font-size: 13px; font-weight: 500; padding: 6px 13px;
+  border-radius: var(--r-sm); cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
+}
+.nav-btn:hover { border-color: var(--text-m); color: var(--text-1); background: var(--surface); }
+.nav-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+.nav-btn.today { background: var(--navy); color: #fff; border-color: var(--navy); }
+.nav-btn.today:hover { opacity: .88; }
+.nav-divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+
+/* ─── FILTER BAR ─── */
+.filter-bar {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 10px 32px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  position: sticky; top: 68px; z-index: 999;
+}
+.f-label { font-size: 11px; font-weight: 600; color: var(--text-m); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; padding-right: 10px; border-right: 1px solid var(--border); }
+.f-count { background: var(--red); color: #fff; border-radius: 10px; min-width: 18px; height: 18px; font-size: 10px; font-weight: 700; display: none; align-items: center; justify-content: center; padding: 0 5px; margin-left: 4px; }
+.f-count.on { display: flex; }
+.f-group { display: flex; align-items: center; gap: 6px; }
+.f-lbl { font-size: 11px; font-weight: 600; color: var(--text-m); white-space: nowrap; }
+
+/* Multi-select dropdown */
+.ms-wrap { position: relative; }
+.ms-trig {
+  background: var(--white); border: 1px solid var(--border-mid); color: var(--text-1);
+  font-family: var(--font-b); font-size: 12px; font-weight: 500; padding: 6px 10px 6px 10px;
+  border-radius: var(--r-sm); cursor: pointer; min-width: 120px; display: flex; align-items: center;
+  justify-content: space-between; gap: 5px; transition: border-color .15s, box-shadow .15s; user-select: none;
+}
+.ms-trig:hover { border-color: var(--text-m); }
+.ms-trig.open { border-color: var(--red); box-shadow: 0 0 0 3px rgba(200,16,46,.08); }
+.ms-caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-m); flex-shrink: 0; transition: transform .15s; }
+.ms-trig.open .ms-caret { transform: rotate(180deg); }
+.ms-txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-cnt { background: var(--red); color: #fff; border-radius: 10px; min-width: 15px; height: 15px; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; flex-shrink: 0; }
+.ms-dd {
+  position: absolute; top: calc(100% + 4px); left: 0; background: var(--white);
+  border: 1px solid var(--border-mid); border-radius: var(--r); box-shadow: var(--shadow-lg);
+  min-width: 200px; max-width: 250px; z-index: 2000; display: none; overflow: hidden;
+}
+.ms-dd.open { display: block; }
+.ms-search { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.ms-search input { width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px 8px; font-size: 12px; font-family: var(--font-b); outline: none; background: var(--surface); color: var(--text-1); }
+.ms-search input:focus { border-color: var(--red); }
+.ms-list { max-height: 200px; overflow-y: auto; }
+.ms-item { display: flex; align-items: center; gap: 7px; padding: 6px 12px; cursor: pointer; font-size: 12px; color: var(--text-2); font-weight: 500; transition: background .1s; }
+.ms-item:hover { background: var(--surface); }
+.ms-item.sel { background: var(--red-pale); color: var(--text-1); }
+.ms-item input[type=checkbox] { width: 13px; height: 13px; accent-color: var(--red); flex-shrink: 0; cursor: pointer; }
+.ms-foot { padding: 7px 10px; border-top: 1px solid var(--border); display: flex; gap: 5px; }
+.ms-foot button { flex: 1; font-size: 11px; font-weight: 600; padding: 4px; border-radius: var(--r-sm); cursor: pointer; transition: all .15s; font-family: var(--font-b); border: 1px solid; }
+.ms-all { background: var(--surface); border-color: var(--border); color: var(--text-2); }
+.ms-all:hover { background: var(--border); }
+.ms-clr { background: var(--red-pale); border-color: var(--red-light); color: var(--red); }
+.ms-clr:hover { background: var(--red-light); }
+
+.search-wrap { display: flex; align-items: center; gap: 6px; }
+.search-input {
+  border: 1px solid var(--border-mid); border-radius: var(--r-sm); padding: 6px 10px;
+  font-size: 12px; font-family: var(--font-b); color: var(--text-1); outline: none;
+  background: var(--white); width: 180px; transition: border-color .15s, box-shadow .15s;
+}
+.search-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(200,16,46,.08); }
+.btn-reset {
+  margin-left: auto; background: transparent; border: 1px solid var(--border-mid); color: var(--text-m);
+  font-family: var(--font-b); font-size: 12px; font-weight: 500; padding: 6px 12px;
+  border-radius: var(--r-sm); cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 4px;
+}
+.btn-reset:hover { border-color: var(--red); color: var(--red); background: var(--red-pale); }
+
+/* ─── MAIN LAYOUT ─── */
+.main-wrap { display: flex; gap: 0; min-height: calc(100vh - 117px); }
+.sidebar-filters {
+  width: 0; overflow: hidden; background: var(--white); border-right: 1px solid var(--border);
+  flex-shrink: 0; transition: width .2s ease; display: flex; flex-direction: column;
+}
+.sidebar-filters.open { width: 240px; }
+.sf-inner { width: 240px; padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.sf-section-title { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-m); margin-bottom: 6px; }
+.sf-select { width: 100%; border: 1px solid var(--border-mid); border-radius: var(--r-sm); padding: 6px 8px; font-size: 12px; font-family: var(--font-b); color: var(--text-1); outline: none; background: var(--white); min-height: 90px; }
+.sf-select:focus { border-color: var(--red); }
+
+.cal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* ─── CALENDAR HEADER ─── */
+.cal-header {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+}
+.cal-title { font-family: var(--font); font-weight: 700; font-size: 20px; letter-spacing: -.02em; color: var(--text-1); min-width: 200px; }
+.cal-title span { color: var(--red); }
+.result-count { font-size: 12px; color: var(--text-m); font-weight: 500; }
+.view-toggle { display: flex; background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--r-sm); overflow: hidden; margin-left: auto; }
+.view-btn { background: transparent; border: none; border-right: 1px solid var(--border-mid); color: var(--text-m); font-family: var(--font-b); font-size: 12px; font-weight: 600; padding: 6px 13px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.view-btn:last-child { border-right: none; }
+.view-btn:hover { background: var(--white); color: var(--text-1); }
+.view-btn.active { background: var(--red); color: #fff; }
+
+/* ─── MONTH VIEW ─── */
+.month-view { flex: 1; padding: 16px 24px; display: flex; flex-direction: column; gap: 0; overflow: auto; }
+.month-view.hidden, .quarter-view.hidden { display: none; }
+.month-grid-wrap { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-sm); background: var(--white); }
+.dow-row { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--navy); }
+.dow-cell { padding: 9px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: .06em; text-transform: uppercase; text-align: center; }
+.dow-cell.weekend { color: rgba(255,255,255,.4); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+/* Day cell */
+.day-cell {
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  min-height: 112px; padding: 0; position: relative; background: var(--white); vertical-align: top; overflow: hidden;
+}
+.day-cell:nth-child(7n) { border-right: none; }
+.day-cell.outside { background: #FAFAFA; }
+.day-cell.today { background: #FDF2F4; }
+.day-cell.today .day-num { background: var(--red); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.day-top { padding: 7px 8px 3px; display: flex; align-items: center; justify-content: space-between; }
+.day-num { font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1; }
+.day-cell.outside .day-num { color: var(--text-m); }
+.day-more { font-size: 10px; font-weight: 600; color: var(--red); cursor: pointer; }
+.day-more:hover { text-decoration: underline; }
+
+/* Campaign event blocks — multi-day spanning */
+.day-events { padding: 0 0 4px; display: flex; flex-direction: column; gap: 2px; }
+.evt-block {
+  margin: 0 4px; padding: 3px 6px; border-radius: 3px; font-size: 11px; font-weight: 600;
+  line-height: 1.25; cursor: pointer; transition: filter .12s, transform .08s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.evt-block:hover { filter: brightness(.93); transform: translateY(-1px); }
+.evt-block.span-start { border-radius: 3px 0 0 3px; margin-right: 0; padding-right: 2px; }
+.evt-block.span-mid { border-radius: 0; margin: 0 0; padding: 3px 2px; }
+.evt-block.span-end { border-radius: 0 3px 3px 0; margin-left: 0; padding-left: 2px; }
+.evt-block.span-start.span-end { border-radius: 3px; }
+.evt-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evt-meta { display: block; font-size: 10px; font-weight: 500; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Brand color palette — 10 colors */
+.brand-0  { background: #EFF6FF; border-left-color: #2563EB; color: #1E40AF; }
+.brand-1  { background: #FFF7ED; border-left-color: #EA580C; color: #9A3412; }
+.brand-2  { background: #ECFDF5; border-left-color: #059669; color: #065F46; }
+.brand-3  { background: #F5F3FF; border-left-color: #7C3AED; color: #5B21B6; }
+.brand-4  { background: #FFF1F2; border-left-color: #E11D48; color: #9F1239; }
+.brand-5  { background: #FFFBEB; border-left-color: #D97706; color: #92400E; }
+.brand-6  { background: #F0FDFA; border-left-color: #0D9488; color: #134E4A; }
+.brand-7  { background: #FFF0F3; border-left-color: #C8102E; color: #7F1D1D; }
+.brand-8  { background: #F9F9F9; border-left-color: #6B7280; color: #374151; }
+.brand-9  { background: #F0F4FF; border-left-color: #4F46E5; color: #3730A3; }
+
+/* Spanning blocks hide border for mid/end */
+.evt-block.span-mid, .evt-block.span-end { border-left: none; border-left-width: 0; }
+
+/* ─── QUARTER VIEW ─── */
+.quarter-view { flex: 1; padding: 16px 24px; }
+.quarter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.q-month-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); overflow: hidden; }
+.q-month-hdr { background: var(--navy); padding: 12px 16px; }
+.q-month-title { font-family: var(--font); font-weight: 700; font-size: 14px; color: #fff; }
+.q-month-count { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; }
+.q-month-body { padding: 10px; display: flex; flex-direction: column; gap: 5px; max-height: 500px; overflow-y: auto; }
+.q-evt {
+  padding: 7px 10px; border-radius: var(--r-sm); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: filter .1s; border-left: 3px solid transparent;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.q-evt:hover { filter: brightness(.93); }
+.q-evt-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-evt-dates { font-size: 10px; font-weight: 500; opacity: .75; }
+.q-empty { font-size: 12px; color: var(--text-m); padding: 8px; text-align: center; }
+
+/* ─── DETAIL SIDEBAR ─── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity .25s; backdrop-filter: blur(2px); }
+.overlay.on { opacity: 1; pointer-events: all; }
+.detail-sidebar {
+  position: fixed; right: -440px; top: 0; bottom: 0; width: 440px;
+  background: var(--white); z-index: 2001; box-shadow: var(--shadow-xl);
+  transition: right .3s cubic-bezier(.16,1,.3,1); display: flex; flex-direction: column;
+}
+.detail-sidebar.on { right: 0; }
+.ds-hdr { padding: 18px 22px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.ds-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.ds-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 10px; margin-bottom: 6px; }
+.ds-title { font-family: var(--font); font-weight: 700; font-size: 19px; letter-spacing: -.01em; color: var(--text-1); line-height: 1.25; }
+.ds-sub { font-size: 12px; color: var(--text-m); margin-top: 4px; }
+.ds-close {
+  width: 30px; height: 30px; border-radius: var(--r-sm); border: 1px solid var(--border);
+  background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--text-m); font-size: 16px; transition: all .15s; flex-shrink: 0;
+}
+.ds-close:hover { background: var(--red-pale); border-color: var(--red-light); color: var(--red); }
+.ds-body { flex: 1; overflow-y: auto; padding: 16px 22px; display: flex; flex-direction: column; gap: 0; }
+.ds-row { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+.ds-row:last-child { border-bottom: none; }
+.ds-row-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-m); }
+.ds-row-val { font-size: 13px; color: var(--text-1); font-weight: 500; line-height: 1.4; }
+.ds-tag { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 600; color: var(--text-2); margin: 2px 2px 0 0; }
+.ds-footer { padding: 12px 22px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; font-size: 11px; color: var(--text-m); }
+
+/* ─── LOADING / ERROR STATES ─── */
+.state-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; text-align: center; padding: 40px; }
+.state-icon { font-size: 40px; }
+.state-title { font-family: var(--font); font-weight: 700; font-size: 20px; color: var(--text-1); }
+.state-sub { font-size: 14px; color: var(--text-m); max-width: 400px; line-height: 1.5; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── VALIDATION BANNER ─── */
+.val-banner { background: var(--amber-bg); border-bottom: 1px solid #FCD34D; padding: 8px 32px; font-size: 12px; color: var(--amber-dk); display: none; align-items: center; gap: 6px; }
+.val-banner.on { display: flex; }
+
+/* ─── LEGEND ─── */
+.legend-strip { padding: 8px 24px; border-top: 1px solid var(--border); background: var(--white); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-2); font-weight: 500; }
+.leg-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ─── FOOTER ─── */
+.footer { padding: 12px 32px; border-top: 1px solid var(--border); background: var(--white); font-size: 11px; color: var(--text-m); display: flex; justify-content: space-between; align-items: center; }
+.footer strong { color: var(--text-2); }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1100px) { .cal-header { padding: 10px 16px; } .month-view, .quarter-view { padding: 12px 16px; } }
+@media (max-width: 780px) { .filter-bar { gap: 6px; } .hdr { padding: 0 16px; } .quarter-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-  <header class="top-bar">
+
+<!-- ─── HEADER ─── -->
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="hdr-div"></div>
     <div>
-      <h1>CMO Campaign Calendar</h1>
-      <p class="subtle">Interactive Monday.com export view</p>
+      <div class="hdr-title">FullSpeed Automotive &nbsp;<span>·</span>&nbsp; CMO Campaign Calendar</div>
+      <div class="hdr-sub">Monday.com Board Export &nbsp;·&nbsp; Marketing Performance &amp; Insights</div>
     </div>
-    <div class="top-actions">
-      <button id="prevMonthBtn" type="button">Previous</button>
-      <button id="todayBtn" type="button">Today</button>
-      <button id="nextMonthBtn" type="button">Next</button>
-      <button id="viewToggleBtn" type="button" class="secondary">Quarter View</button>
+  </div>
+  <div class="hdr-r">
+    <div class="refresh-badge" id="refreshBadge">
+      <span class="refresh-dot"></span>
+      <span>Last Refresh:&nbsp;<strong id="refreshDate">—</strong></span>
     </div>
-  </header>
+    <span class="hdr-pill" id="campaignCountPill">— Campaigns</span>
+    <div class="hdr-div"></div>
+    <div class="hdr-nav">
+      <button class="nav-btn" id="prevBtn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="nav-btn today" id="todayBtn">Today</button>
+      <button class="nav-btn" id="nextBtn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
 
-  <main class="layout">
-    <aside class="filters-panel">
-      <h2>Filters</h2>
-      <label class="control-group">
-        <span>Search Campaign</span>
-        <input id="searchInput" type="text" placeholder="Search by name">
-      </label>
-      <label class="control-group">
-        <span>Brand</span>
-        <select id="brandFilter" multiple size="6"></select>
-      </label>
-      <label class="control-group">
-        <span>Offer Type</span>
-        <select id="offerTypeFilter" multiple size="6"></select>
-      </label>
-      <label class="control-group">
-        <span>Audience</span>
-        <select id="audienceFilter" multiple size="6"></select>
-      </label>
-      <div class="control-row">
-        <button id="resetFiltersBtn" type="button" class="secondary">Reset</button>
+<!-- ─── VALIDATION BANNER ─── -->
+<div class="val-banner" id="valBanner">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+  <span id="valMsg"></span>
+</div>
+
+<!-- ─── FILTER BAR ─── -->
+<div class="filter-bar">
+  <span class="f-label">Filters <span class="f-count" id="filterCount"></span></span>
+
+  <div class="f-group">
+    <span class="f-lbl">Brand</span>
+    <div class="ms-wrap" id="brandWrap">
+      <button class="ms-trig" id="brandTrig" type="button">
+        <span class="ms-txt" id="brandTxt">All Brands</span>
+        <span class="ms-caret"></span>
+      </button>
+      <div class="ms-dd" id="brandDd">
+        <div class="ms-search"><input type="text" placeholder="Search brands…" id="brandSearch"></div>
+        <div class="ms-list" id="brandList"></div>
+        <div class="ms-foot">
+          <button class="ms-all" data-target="brand">All</button>
+          <button class="ms-clr" data-target="brand">Clear</button>
+        </div>
       </div>
-      <p id="validationSummary" class="subtle"></p>
-      <p id="refreshInfo" class="subtle"></p>
-    </aside>
+    </div>
+  </div>
 
-    <section class="calendar-panel">
-      <div class="panel-header">
-        <h2 id="currentRangeLabel">Loading...</h2>
-        <p id="resultCountLabel" class="subtle"></p>
+  <div class="f-group">
+    <span class="f-lbl">Offer Type</span>
+    <div class="ms-wrap" id="offerWrap">
+      <button class="ms-trig" id="offerTrig" type="button">
+        <span class="ms-txt" id="offerTxt">All Types</span>
+        <span class="ms-caret"></span>
+      </button>
+      <div class="ms-dd" id="offerDd">
+        <div class="ms-search"><input type="text" placeholder="Search types…" id="offerSearch"></div>
+        <div class="ms-list" id="offerList"></div>
+        <div class="ms-foot">
+          <button class="ms-all" data-target="offer">All</button>
+          <button class="ms-clr" data-target="offer">Clear</button>
+        </div>
       </div>
+    </div>
+  </div>
 
-      <section id="monthView" class="month-grid"></section>
-      <section id="quarterView" class="quarter-grid hidden"></section>
-    </section>
-
-    <aside id="detailsPane" class="details-panel">
-      <h2>Campaign Details</h2>
-      <div id="detailsContent" class="details-content">
-        <p class="subtle">Select a campaign to view details.</p>
+  <div class="f-group">
+    <span class="f-lbl">Audience</span>
+    <div class="ms-wrap" id="audWrap">
+      <button class="ms-trig" id="audTrig" type="button">
+        <span class="ms-txt" id="audTxt">All Audiences</span>
+        <span class="ms-caret"></span>
+      </button>
+      <div class="ms-dd" id="audDd">
+        <div class="ms-search"><input type="text" placeholder="Search audiences…" id="audSearch"></div>
+        <div class="ms-list" id="audList"></div>
+        <div class="ms-foot">
+          <button class="ms-all" data-target="aud">All</button>
+          <button class="ms-clr" data-target="aud">Clear</button>
+        </div>
       </div>
-    </aside>
-  </main>
+    </div>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="./app.js"></script>
+  <div class="search-wrap">
+    <svg width="14" height="14" fill="none" stroke="var(--text-m)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" type="text" id="searchInput" placeholder="Search campaigns…">
+  </div>
+
+  <button class="btn-reset" id="resetBtn">
+    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    Reset
+  </button>
+</div>
+
+<!-- ─── MAIN ─── -->
+<div class="main-wrap">
+  <div class="cal-main">
+
+    <!-- Calendar sub-header -->
+    <div class="cal-header">
+      <div class="cal-title" id="calTitle">Loading…</div>
+      <div class="result-count" id="resultCount"></div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="monthViewBtn">Month</button>
+        <button class="view-btn" id="quarterViewBtn">Quarter</button>
+      </div>
+    </div>
+
+    <!-- Month view -->
+    <div class="month-view" id="monthView">
+      <div class="month-grid-wrap">
+        <div class="dow-row">
+          <div class="dow-cell">Sun</div>
+          <div class="dow-cell">Mon</div>
+          <div class="dow-cell">Tue</div>
+          <div class="dow-cell">Wed</div>
+          <div class="dow-cell">Thu</div>
+          <div class="dow-cell">Fri</div>
+          <div class="dow-cell weekend">Sat</div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="legend-strip" id="legendStrip"></div>
+    </div>
+
+    <!-- Quarter view -->
+    <div class="quarter-view hidden" id="quarterView">
+      <div class="quarter-grid" id="quarterGrid"></div>
+    </div>
+
+    <!-- Loading / error -->
+    <div class="state-screen" id="stateScreen">
+      <div class="spinner"></div>
+      <div class="state-title">Loading campaign data…</div>
+      <div class="state-sub">Fetching from Monday.com export</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>FullSpeed Automotive &nbsp;·&nbsp; CMO Campaign Calendar &nbsp;·&nbsp; <strong>Confidential Internal Use Only</strong></span>
+      <span id="footerMeta"></span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── DETAIL SIDEBAR ─── -->
+<div class="overlay" id="overlay"></div>
+<div class="detail-sidebar" id="detailSidebar">
+  <div class="ds-hdr">
+    <div class="ds-top">
+      <div>
+        <div class="ds-badge" id="dsBadge"></div>
+        <div class="ds-title" id="dsTitle">Campaign Details</div>
+        <div class="ds-sub" id="dsSub"></div>
+      </div>
+      <button class="ds-close" id="dsClose">✕</button>
+    </div>
+  </div>
+  <div class="ds-body" id="dsBody"></div>
+  <div class="ds-footer" id="dsFooter"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+/* ════════════════════════════════════════════════════
+   FSA Campaign Calendar — Redesigned v2
+   Matches ServicesByLocationDMA design system
+   Features:
+   - Multi-day spanning event blocks
+   - FSA brand color system
+   - Last Monday.com Refresh badge
+   - Slide-in detail sidebar
+   - Custom multi-select dropdowns
+   ════════════════════════════════════════════════════ */
+
+const DATA_FILE = './data/latest-export.xlsx';
+const BRAND_COL_CANDIDATES = ['Brand', 'Brand Name', 'Business Unit'];
+const DAY_MS = 86400000;
+
+const BRAND_COLORS = [
+  'brand-0','brand-1','brand-2','brand-3','brand-4',
+  'brand-5','brand-6','brand-7','brand-8','brand-9'
+];
+const SWATCH_COLORS = [
+  '#2563EB','#EA580C','#059669','#7C3AED','#E11D48',
+  '#D97706','#0D9488','#C8102E','#6B7280','#4F46E5'
+];
+
+/* ── State ── */
+const S = {
+  campaigns: [],
+  filtered: [],
+  currentDate: new Date(),
+  viewMode: 'month',
+  selectedId: null,
+  brandColorMap: {},
+  brandIndex: {},
+  filters: { brand: new Set(), offer: new Set(), aud: new Set(), search: '' },
+  validationIssues: [],
+  lastModified: null,
+};
+
+/* ── DOM refs ── */
+const $ = id => document.getElementById(id);
+const calGrid = $('calGrid');
+const quarterGrid = $('quarterGrid');
+const monthViewEl = $('monthView');
+const quarterViewEl = $('quarterView');
+const stateScreen = $('stateScreen');
+const calTitle = $('calTitle');
+const resultCount = $('resultCount');
+const overlay = $('overlay');
+const sidebar = $('detailSidebar');
+
+/* ════════════ BOOT ════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+  bindNav();
+  bindFilters();
+  bindDropdowns();
+  await loadData();
+});
+
+/* ════════════ DATA LOAD ════════════ */
+async function loadData() {
+  try {
+    const resp = await fetch(DATA_FILE, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('Unable to load data/latest-export.xlsx. Commit your Monday.com export to /data/.');
+    S.lastModified = resp.headers.get('last-modified');
+    const buf = await resp.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+    const parsed = parseRows(rows);
+    S.validationIssues = parsed.issues;
+    S.campaigns = parsed.campaigns.filter(c => !c.invalidDate);
+    assignBrandColors();
+    hydrateDropdowns();
+    updateRefreshBadge();
+    showValBanner();
+    hideState();
+    refresh();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+function parseRows(rows) {
+  const out = { campaigns: [], issues: [] };
+  const hIdx = rows.findIndex(r => {
+    const n = r.map(c => String(c || '').trim().toLowerCase());
+    return n.includes('name') && n.includes('in market - start') && n.includes('in market - end');
+  });
+  if (hIdx === -1) return out;
+  const hdrs = rows[hIdx].map(v => String(v || '').trim());
+  for (let i = hIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => c === '' || c == null)) continue;
+    const m = {};
+    hdrs.forEach((h, idx) => { m[h] = row[idx]; });
+    const name = tv(m.Name); if (!name) continue;
+    const start = pd(m['In Market - Start']);
+    const end = pd(m['In Market - End']);
+    const launch = pd(m['Target Launch']);
+    const c = {
+      id: `${name}-${i}`,
+      name,
+      stage: tv(m.Stage) || 'Unspecified',
+      status: tv(m.Status) || 'Unspecified',
+      offerType: tv(m['Offer Type']) || 'Unspecified',
+      offerSubtype: tv(m['Offer Subtype']) || 'Unspecified',
+      audience: tokens(m.Audience).length ? tokens(m.Audience) : ['Unspecified'],
+      productService: tokens(m['Product/Service']),
+      assigned: tokens(m.Assigned),
+      subitems: tv(m.Subitems) || '',
+      brand: resolveBrand(m),
+      startDate: start || launch,
+      endDate: end || launch || start,
+      targetLaunch: launch,
+    };
+    c.invalidDate = !c.startDate || !c.endDate;
+    if (c.invalidDate) out.issues.push(`No valid date for "${name}"`);
+    out.campaigns.push(c);
+  }
+  return out;
+}
+
+function resolveBrand(m) { for (const k of BRAND_COL_CANDIDATES) if (m[k]) return tv(m[k]); return 'Unspecified'; }
+function pd(v) { if (!v) return null; if (v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate()); const p = new Date(v); return isNaN(p) ? null : new Date(p.getFullYear(), p.getMonth(), p.getDate()); }
+function tv(v) { return v == null ? '' : String(v).trim(); }
+function tokens(v) { return tv(v).split(',').map(x => x.trim()).filter(Boolean); }
+function uniq(arr) { return [...new Set(arr.filter(Boolean))].sort((a,b) => a.localeCompare(b)); }
+function fmtDate(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'; }
+function fmtDateShort(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Brand color assignment ── */
+function assignBrandColors() {
+  const brands = uniq(S.campaigns.map(c => c.brand));
+  brands.forEach((b, i) => {
+    S.brandColorMap[b] = BRAND_COLORS[i % BRAND_COLORS.length];
+    S.brandIndex[b] = i % SWATCH_COLORS.length;
+  });
+}
+
+/* ── Refresh badge ── */
+function updateRefreshBadge() {
+  let txt = '—';
+  if (S.lastModified) {
+    const d = new Date(S.lastModified);
+    txt = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } else {
+    txt = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  $('refreshDate').textContent = txt;
+  $('campaignCountPill').textContent = `${S.campaigns.length} Campaign${S.campaigns.length !== 1 ? 's' : ''}`;
+}
+
+/* ── Validation banner ── */
+function showValBanner() {
+  const b = $('valBanner');
+  if (S.validationIssues.length) {
+    $('valMsg').textContent = `Data quality: ${S.validationIssues.length} row(s) with missing dates excluded.`;
+    b.classList.add('on');
+  }
+}
+
+/* ════════════ FILTER DROPDOWNS ════════════ */
+function hydrateDropdowns() {
+  const brands = uniq(S.campaigns.map(c => c.brand));
+  const offers = uniq(S.campaigns.map(c => c.offerType));
+  const auds = uniq(S.campaigns.flatMap(c => c.audience));
+  buildList('brandList', brands, 'brand');
+  buildList('offerList', offers, 'offer');
+  buildList('audList', auds, 'aud');
+  buildLegend(brands);
+}
+
+function buildList(listId, items, key) {
+  const el = $(listId);
+  el.innerHTML = '';
+  items.forEach(val => {
+    const div = document.createElement('div');
+    div.className = 'ms-item';
+    div.dataset.val = val;
+    div.dataset.key = key;
+    div.innerHTML = `<input type="checkbox" data-key="${key}" data-val="${esc(val)}"><span>${esc(val)}</span>`;
+    div.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) S.filters[key].add(val);
+      else S.filters[key].delete(val);
+      updateListState(listId, key);
+      updateTriggerText(key);
+      updateFilterCount();
+      refresh();
+    });
+    el.appendChild(div);
+  });
+}
+
+function updateListState(listId, key) {
+  const el = $(listId);
+  el.querySelectorAll('.ms-item').forEach(item => {
+    const isSelected = S.filters[key].has(item.dataset.val);
+    item.classList.toggle('sel', isSelected);
+    item.querySelector('input').checked = isSelected;
+  });
+}
+
+function updateTriggerText(key) {
+  const map = {
+    brand: { trig: 'brandTrig', txt: 'brandTxt', def: 'All Brands' },
+    offer: { trig: 'offerTrig', txt: 'offerTxt', def: 'All Types' },
+    aud:   { trig: 'audTrig',   txt: 'audTxt',   def: 'All Audiences' },
+  };
+  const { txt, def } = map[key];
+  const count = S.filters[key].size;
+  if (count === 0) {
+    $(txt).textContent = def;
+    $(map[key].trig).querySelector('.ms-cnt')?.remove();
+  } else {
+    $(txt).textContent = count === 1 ? [...S.filters[key]][0] : `${count} selected`;
+    let cnt = $(map[key].trig).querySelector('.ms-cnt');
+    if (!cnt) { cnt = document.createElement('span'); cnt.className = 'ms-cnt'; $(map[key].trig).insertBefore(cnt, $(map[key].trig).querySelector('.ms-caret')); }
+    cnt.textContent = count;
+  }
+}
+
+function updateFilterCount() {
+  const total = S.filters.brand.size + S.filters.offer.size + S.filters.aud.size + (S.filters.search ? 1 : 0);
+  const el = $('filterCount');
+  el.textContent = total;
+  el.classList.toggle('on', total > 0);
+}
+
+function bindDropdowns() {
+  // Toggle open/close
+  [['brandTrig','brandDd','brandWrap'],['offerTrig','offerDd','offerWrap'],['audTrig','audDd','audWrap']].forEach(([tId, ddId, wId]) => {
+    $(tId).addEventListener('click', e => { e.stopPropagation(); toggleDd(ddId, tId); });
+  });
+  // All / Clear
+  document.querySelectorAll('.ms-all, .ms-clr').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const key = btn.dataset.target;
+      if (btn.classList.contains('ms-clr')) {
+        S.filters[key].clear();
+      } else {
+        const map = { brand: 'brandList', offer: 'offerList', aud: 'audList' };
+        $(map[key]).querySelectorAll('.ms-item').forEach(item => S.filters[key].add(item.dataset.val));
+      }
+      const listMap = { brand: 'brandList', offer: 'offerList', aud: 'audList' };
+      updateListState(listMap[key], key);
+      updateTriggerText(key);
+      updateFilterCount();
+      refresh();
+    });
+  });
+  // Inline search within dropdowns
+  [['brandSearch','brandList'],['offerSearch','offerList'],['audSearch','audList']].forEach(([sId, lId]) => {
+    $(sId).addEventListener('input', () => {
+      const q = $(sId).value.toLowerCase();
+      $(lId).querySelectorAll('.ms-item').forEach(item => {
+        item.style.display = item.dataset.val.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  });
+  // Close all on outside click
+  document.addEventListener('click', () => { document.querySelectorAll('.ms-dd.open').forEach(dd => { dd.classList.remove('open'); document.getElementById(dd.id.replace('Dd','Trig'))?.classList.remove('open'); }); });
+}
+
+function toggleDd(ddId, trigId) {
+  const dd = $(ddId); const trig = $(trigId);
+  const wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.ms-dd.open').forEach(d => { d.classList.remove('open'); document.getElementById(d.id.replace('Dd','Trig'))?.classList.remove('open'); });
+  if (!wasOpen) { dd.classList.add('open'); trig.classList.add('open'); }
+}
+
+function buildLegend(brands) {
+  const strip = $('legendStrip');
+  strip.innerHTML = '';
+  brands.forEach((b, i) => {
+    const color = SWATCH_COLORS[i % SWATCH_COLORS.length];
+    const item = document.createElement('div');
+    item.className = 'leg-item';
+    item.innerHTML = `<span class="leg-swatch" style="background:${color}"></span><span>${esc(b)}</span>`;
+    strip.appendChild(item);
+  });
+}
+
+/* ════════════ NAV & FILTERS ════════════ */
+function bindNav() {
+  $('prevBtn').addEventListener('click', () => { nudge(-1); });
+  $('nextBtn').addEventListener('click', () => { nudge(1); });
+  $('todayBtn').addEventListener('click', () => { S.currentDate = new Date(); refresh(); });
+  $('monthViewBtn').addEventListener('click', () => setView('month'));
+  $('quarterViewBtn').addEventListener('click', () => setView('quarter'));
+}
+
+function nudge(dir) {
+  const d = S.currentDate;
+  if (S.viewMode === 'month') {
+    S.currentDate = new Date(d.getFullYear(), d.getMonth() + dir, 1);
+  } else {
+    S.currentDate = new Date(d.getFullYear(), d.getMonth() + dir * 3, 1);
+  }
+  refresh();
+}
+
+function setView(v) {
+  S.viewMode = v;
+  $('monthViewBtn').classList.toggle('active', v === 'month');
+  $('quarterViewBtn').classList.toggle('active', v === 'quarter');
+  monthViewEl.classList.toggle('hidden', v !== 'month');
+  quarterViewEl.classList.toggle('hidden', v !== 'quarter');
+  refresh();
+}
+
+function bindFilters() {
+  $('searchInput').addEventListener('input', () => {
+    S.filters.search = $('searchInput').value.trim().toLowerCase();
+    updateFilterCount();
+    refresh();
+  });
+  $('resetBtn').addEventListener('click', resetFilters);
+  $('overlay').addEventListener('click', closeDetail);
+  $('dsClose').addEventListener('click', closeDetail);
+}
+
+function resetFilters() {
+  ['brand','offer','aud'].forEach(k => { S.filters[k].clear(); updateTriggerText(k); });
+  $('searchInput').value = ''; S.filters.search = '';
+  ['brandList','offerList','audList'].forEach(id => { updateListState(id, id.replace('List','')); });
+  updateFilterCount();
+  refresh();
+}
+
+/* ════════════ FILTER LOGIC ════════════ */
+function applyFilters() {
+  return S.campaigns.filter(c =>
+    (S.filters.brand.size === 0 || S.filters.brand.has(c.brand)) &&
+    (S.filters.offer.size === 0 || S.filters.offer.has(c.offerType)) &&
+    (S.filters.aud.size === 0 || c.audience.some(a => S.filters.aud.has(a))) &&
+    (!S.filters.search || c.name.toLowerCase().includes(S.filters.search))
+  );
+}
+
+/* ════════════ RENDER ════════════ */
+function refresh() {
+  S.filtered = applyFilters();
+  resultCount.textContent = `${S.filtered.length} campaign${S.filtered.length !== 1 ? 's' : ''} shown`;
+  if (S.viewMode === 'month') renderMonth();
+  else renderQuarter();
+}
+
+/* ── MONTH VIEW with multi-day spanning ── */
+function renderMonth() {
+  const year = S.currentDate.getFullYear();
+  const month = S.currentDate.getMonth();
+  calTitle.innerHTML = `${S.currentDate.toLocaleString('default',{month:'long'})} <span>${year}</span>`;
+
+  const monthStart = new Date(year, month, 1);
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(gridStart.getDate() - monthStart.getDay());
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Build 6-week grid (42 cells)
+  const days = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    days.push(d);
+  }
+
+  // For each campaign, figure out which grid columns (0-based day index) it spans
+  // We place events in rows to avoid overlap. Simple greedy placement.
+  // Each cell gets a list of "rows" — track which row is occupied on which day index.
+  const MAX_ROWS = 3;
+  const cellRows = Array.from({length: 42}, () => []); // cellRows[dayIdx] = array of campaignId or null per row
+
+  // Sort filtered by start date, then duration desc
+  const evts = S.filtered
+    .filter(c => {
+      // Only show if overlaps this month's grid
+      const gs = days[0], ge = days[41];
+      return c.endDate >= gs && c.startDate <= ge;
+    })
+    .sort((a,b) => a.startDate - b.startDate || (b.endDate - b.startDate) - (a.endDate - a.startDate));
+
+  // For each event, find which day indices it spans within the grid
+  const placed = []; // { campaign, startIdx, endIdx, row }
+  const rowOccupied = Array.from({length: 42}, () => new Array(MAX_ROWS).fill(false));
+
+  evts.forEach(c => {
+    const startIdx = Math.max(0, daysBetween(days[0], c.startDate));
+    const endIdx = Math.min(41, daysBetween(days[0], c.endDate));
+    if (startIdx > 41 || endIdx < 0) return;
+    // Find a free row across all spanned days
+    let row = -1;
+    for (let r = 0; r < MAX_ROWS; r++) {
+      let free = true;
+      for (let di = startIdx; di <= endIdx; di++) {
+        if (rowOccupied[di][r]) { free = false; break; }
+      }
+      if (free) { row = r; break; }
+    }
+    if (row === -1) {
+      // Mark as overflow in startIdx cell
+      placed.push({ campaign: c, startIdx, endIdx, row: 'overflow' });
+      return;
+    }
+    for (let di = startIdx; di <= endIdx; di++) rowOccupied[di][row] = c.id;
+    placed.push({ campaign: c, startIdx, endIdx, row });
+  });
+
+  // Build overflow count map
+  const overflowMap = {}; // dayIdx => count
+  placed.filter(p => p.row === 'overflow').forEach(p => {
+    overflowMap[p.startIdx] = (overflowMap[p.startIdx] || 0) + 1;
+  });
+
+  // Render cells
+  calGrid.innerHTML = '';
+  days.forEach((d, di) => {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (d.getMonth() !== month) cell.classList.add('outside');
+    if (d.getTime() === today.getTime()) cell.classList.add('today');
+
+    const top = document.createElement('div');
+    top.className = 'day-top';
+    const num = document.createElement('div');
+    num.className = 'day-num';
+    num.textContent = d.getDate();
+    top.appendChild(num);
+    if (overflowMap[di]) {
+      const more = document.createElement('span');
+      more.className = 'day-more';
+      more.textContent = `+${overflowMap[di]} more`;
+      top.appendChild(more);
+    }
+    cell.appendChild(top);
+
+    const evtWrap = document.createElement('div');
+    evtWrap.className = 'day-events';
+
+    // For each row slot, check if an event starts here
+    for (let r = 0; r < MAX_ROWS; r++) {
+      const evt = placed.find(p => p.row === r && p.startIdx === di);
+      if (evt) {
+        const blk = buildEventBlock(evt.campaign, di, evt.startIdx, evt.endIdx, days);
+        evtWrap.appendChild(blk);
+      } else if (rowOccupied[di][r] && rowOccupied[di][r] !== false) {
+        // Continuing span — render invisible spacer to maintain row alignment
+        const spacer = document.createElement('div');
+        spacer.className = 'evt-block span-mid';
+        spacer.style.opacity = '0';
+        spacer.style.pointerEvents = 'none';
+        spacer.textContent = '\u00A0';
+        evtWrap.appendChild(spacer);
+      }
+    }
+
+    cell.appendChild(evtWrap);
+    calGrid.appendChild(cell);
+  });
+}
+
+function buildEventBlock(c, di, startIdx, endIdx, days) {
+  const colorClass = S.brandColorMap[c.brand] || 'brand-8';
+  const blk = document.createElement('div');
+  blk.className = `evt-block ${colorClass}`;
+
+  // Spanning class
+  const isStart = (di === startIdx);
+  const isEnd = (di === endIdx) || (di % 7 === 6); // end of week row wraps
+  // For true multi-day, we extend visually only if same row/week
+  if (isStart && isEnd) blk.classList.add('span-start', 'span-end');
+  else if (isStart) blk.classList.add('span-start');
+  else if (isEnd) blk.classList.add('span-end');
+  else blk.classList.add('span-mid');
+
+  // Only show text on start cell
+  if (di === startIdx) {
+    const nameEl = document.createElement('span');
+    nameEl.className = 'evt-name';
+    nameEl.textContent = c.name;
+    blk.appendChild(nameEl);
+    if (endIdx > startIdx) {
+      const metaEl = document.createElement('span');
+      metaEl.className = 'evt-meta';
+      metaEl.textContent = `${fmtDateShort(c.startDate)} – ${fmtDateShort(c.endDate)}`;
+      blk.appendChild(metaEl);
+    }
+  }
+
+  blk.addEventListener('click', () => openDetail(c));
+  return blk;
+}
+
+function daysBetween(a, b) {
+  return Math.round((b.getTime() - a.getTime()) / DAY_MS);
+}
+
+/* ── QUARTER VIEW ── */
+function renderQuarter() {
+  const year = S.currentDate.getFullYear();
+  const startM = Math.floor(S.currentDate.getMonth() / 3) * 3;
+  calTitle.innerHTML = `Q${Math.floor(startM/3)+1} <span>${year}</span>`;
+  quarterGrid.innerHTML = '';
+
+  for (let offset = 0; offset < 3; offset++) {
+    const month = startM + offset;
+    const ms = new Date(year, month, 1);
+    const me = new Date(year, month + 1, 0);
+    const evts = S.filtered
+      .filter(c => c.endDate >= ms && c.startDate <= me)
+      .sort((a,b) => a.startDate - b.startDate);
+
+    const card = document.createElement('div');
+    card.className = 'q-month-card';
+    card.innerHTML = `<div class="q-month-hdr"><div class="q-month-title">${ms.toLocaleString('default',{month:'long',year:'numeric'})}</div><div class="q-month-count">${evts.length} campaign${evts.length!==1?'s':''}</div></div><div class="q-month-body" id="qb${offset}"></div>`;
+    quarterGrid.appendChild(card);
+
+    const body = card.querySelector(`#qb${offset}`);
+    if (!evts.length) {
+      body.innerHTML = '<div class="q-empty">No campaigns</div>';
+    } else {
+      evts.forEach(c => {
+        const colorClass = S.brandColorMap[c.brand] || 'brand-8';
+        const ev = document.createElement('div');
+        ev.className = `q-evt ${colorClass}`;
+        ev.innerHTML = `<div class="q-evt-name">${esc(c.name)}</div><div class="q-evt-dates">${fmtDateShort(c.startDate)} – ${fmtDateShort(c.endDate)} · ${esc(c.brand)}</div>`;
+        ev.addEventListener('click', () => openDetail(c));
+        body.appendChild(ev);
+      });
+    }
+  }
+}
+
+/* ════════════ DETAIL SIDEBAR ════════════ */
+function openDetail(c) {
+  S.selectedId = c.id;
+  const colorClass = S.brandColorMap[c.brand] || 'brand-8';
+  const colorIdx = S.brandIndex[c.brand] || 0;
+  const accent = SWATCH_COLORS[colorIdx];
+
+  const badge = $('dsBadge');
+  badge.textContent = c.brand;
+  badge.style.background = accent + '20';
+  badge.style.color = accent;
+  badge.style.border = `1px solid ${accent}40`;
+
+  $('dsTitle').textContent = c.name;
+  $('dsSub').textContent = `${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}`;
+
+  const rows = [
+    ['Offer Type', c.offerType],
+    ['Offer Subtype', c.offerSubtype],
+    ['Stage', c.stage],
+    ['Status', c.status],
+    ['Audience', c.audience],
+    ['Product / Service', c.productService.length ? c.productService : null],
+    ['Assigned', c.assigned.length ? c.assigned : null],
+    ['Target Launch', c.targetLaunch ? fmtDate(c.targetLaunch) : null],
+    ['Subitems', c.subitems || null],
+  ];
+
+  $('dsBody').innerHTML = rows
+    .filter(([, v]) => v !== null && v !== '' && v !== 'Unspecified')
+    .map(([label, val]) => {
+      const isArr = Array.isArray(val);
+      const content = isArr
+        ? val.map(t => `<span class="ds-tag">${esc(t)}</span>`).join('')
+        : `<span class="ds-row-val">${esc(String(val))}</span>`;
+      return `<div class="ds-row"><div class="ds-row-label">${esc(label)}</div>${isArr ? `<div style="margin-top:4px">${content}</div>` : content}</div>`;
+    }).join('');
+
+  $('dsFooter').innerHTML = `Campaign ${S.filtered.indexOf(c)+1} of ${S.filtered.length} shown`;
+
+  overlay.classList.add('on');
+  sidebar.classList.add('on');
+}
+
+function closeDetail() {
+  overlay.classList.remove('on');
+  sidebar.classList.remove('on');
+  S.selectedId = null;
+}
+
+/* ════════════ STATE SCREENS ════════════ */
+function hideState() { stateScreen.style.display = 'none'; }
+function showError(msg) {
+  stateScreen.innerHTML = `<div class="state-icon">⚠️</div><div class="state-title">Data Load Error</div><div class="state-sub">${esc(msg)}</div>`;
+  stateScreen.style.display = 'flex';
+  calTitle.textContent = 'Error';
+}
+</script>
 </body>
 </html>
