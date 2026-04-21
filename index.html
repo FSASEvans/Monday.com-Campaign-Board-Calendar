@@ -171,7 +171,19 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
 .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--navy); }
 .dow-cell { padding: 9px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: .06em; text-transform: uppercase; text-align: center; }
 .dow-cell.weekend { color: rgba(255,255,255,.4); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-grid { display: grid; grid-template-columns: 1fr; }
+
+/* Event bar color classes — used by absolutely positioned bars */
+.evt-bar.brand-0  { background: #DBEAFE; color: #1E40AF; border-left: 3px solid #2563EB; }
+.evt-bar.brand-1  { background: #FFEDD5; color: #9A3412; border-left: 3px solid #EA580C; }
+.evt-bar.brand-2  { background: #D1FAE5; color: #065F46; border-left: 3px solid #059669; }
+.evt-bar.brand-3  { background: #EDE9FE; color: #5B21B6; border-left: 3px solid #7C3AED; }
+.evt-bar.brand-4  { background: #FFE4E6; color: #9F1239; border-left: 3px solid #E11D48; }
+.evt-bar.brand-5  { background: #FEF3C7; color: #92400E; border-left: 3px solid #D97706; }
+.evt-bar.brand-6  { background: #CCFBF1; color: #134E4A; border-left: 3px solid #0D9488; }
+.evt-bar.brand-7  { background: #FFE4E6; color: #7F1D1D; border-left: 3px solid #C8102E; }
+.evt-bar.brand-8  { background: #F3F4F6; color: #374151; border-left: 3px solid #6B7280; }
+.evt-bar.brand-9  { background: #E0E7FF; color: #3730A3; border-left: 3px solid #4F46E5; }
 
 /* Day cell */
 .day-cell {
@@ -274,6 +286,20 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── AUDIENCE TOGGLE ─── */
+.aud-toggle {
+  display: flex; background: var(--surface); border: 1px solid var(--border-mid);
+  border-radius: var(--r-sm); overflow: hidden;
+}
+.aud-toggle-btn {
+  background: transparent; border: none; border-right: 1px solid var(--border-mid);
+  color: var(--text-m); font-family: var(--font-b); font-size: 12px; font-weight: 600;
+  padding: 6px 14px; cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.aud-toggle-btn:last-child { border-right: none; }
+.aud-toggle-btn:hover { background: var(--white); color: var(--text-1); }
+.aud-toggle-btn.active { background: var(--red); color: #fff; }
+
 /* ─── VALIDATION BANNER ─── */
 .val-banner { background: var(--amber-bg); border-bottom: 1px solid #FCD34D; padding: 8px 32px; font-size: 12px; color: var(--amber-dk); display: none; align-items: center; gap: 6px; }
 .val-banner.on { display: flex; }
@@ -373,19 +399,10 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
 
   <div class="f-group">
     <span class="f-lbl">Audience</span>
-    <div class="ms-wrap" id="audWrap">
-      <button class="ms-trig" id="audTrig" type="button">
-        <span class="ms-txt" id="audTxt">All Audiences</span>
-        <span class="ms-caret"></span>
-      </button>
-      <div class="ms-dd" id="audDd">
-        <div class="ms-search"><input type="text" placeholder="Search audiences…" id="audSearch"></div>
-        <div class="ms-list" id="audList"></div>
-        <div class="ms-foot">
-          <button class="ms-all" data-target="aud">All</button>
-          <button class="ms-clr" data-target="aud">Clear</button>
-        </div>
-      </div>
+    <div class="aud-toggle">
+      <button class="aud-toggle-btn active" data-aud="all">All</button>
+      <button class="aud-toggle-btn" data-aud="new">New</button>
+      <button class="aud-toggle-btn" data-aud="existing">Existing</button>
     </div>
   </div>
 
@@ -504,7 +521,7 @@ const S = {
   selectedId: null,
   brandColorMap: {},
   brandIndex: {},
-  filters: { brand: new Set(), offer: new Set(), aud: new Set(), search: '' },
+  filters: { brand: new Set(), offer: new Set(), aud: 'all', search: '' },
   validationIssues: [],
   lastModified: null,
 };
@@ -569,14 +586,15 @@ function parseRows(rows) {
     const start = pd(m['In Market - Start']);
     const end = pd(m['In Market - End']);
     const launch = pd(m['Target Launch']);
+    const rawAud = tokens(m.Audience);
     const c = {
       id: `${name}-${i}`,
       name,
-      stage: tv(m.Stage) || 'Unspecified',
-      status: tv(m.Status) || 'Unspecified',
-      offerType: tv(m['Offer Type']) || 'Unspecified',
-      offerSubtype: tv(m['Offer Subtype']) || 'Unspecified',
-      audience: tokens(m.Audience).length ? tokens(m.Audience) : ['Unspecified'],
+      stage: tv(m.Stage) || '',
+      status: tv(m.Status) || '',
+      offerType: tv(m['Offer Type']) || '',
+      offerSubtype: tv(m['Offer Subtype']) || '',
+      audience: rawAud, // empty array = no audience specified
       productService: tokens(m['Product/Service']),
       assigned: tokens(m.Assigned),
       subitems: tv(m.Subitems) || '',
@@ -592,7 +610,38 @@ function parseRows(rows) {
   return out;
 }
 
-function resolveBrand(m) { for (const k of BRAND_COL_CANDIDATES) if (m[k]) return tv(m[k]); return 'Unspecified'; }
+// FSA brand abbreviation → full name map
+const BRAND_NAMES = {
+  'GM': 'Grease Monkey',
+  'ALF': 'American Lube Fast',
+  'ALF ': 'American Lube Fast',
+  'UE': "Uncle Ed's",
+  "Uncle Ed's": "Uncle Ed's",
+  'SD': 'SpeeDee',
+  'SPEEDEE': 'SpeeDee',
+  'SPEE DEE': 'SpeeDee',
+  'KK': 'Kwik Kar',
+  'KWIK KAR': 'Kwik Kar',
+  'EOC': 'Economy Oil Change',
+  'ECONOMY': 'Economy Oil Change',
+  'HA': 'Herbert Automotive',
+  'HERBERT': 'Herbert Automotive',
+  'GREASE MONKEY': 'Grease Monkey',
+  'AMERICAN LUBE FAST': 'American Lube Fast',
+};
+
+function expandBrand(raw) {
+  if (!raw) return '';
+  const key = raw.trim().toUpperCase();
+  // Exact match first
+  if (BRAND_NAMES[key]) return BRAND_NAMES[key];
+  // Original-case match
+  if (BRAND_NAMES[raw.trim()]) return BRAND_NAMES[raw.trim()];
+  // Return as-is if already a full name or unknown
+  return raw.trim();
+}
+
+function resolveBrand(m) { for (const k of BRAND_COL_CANDIDATES) if (m[k]) return expandBrand(tv(m[k])); return ''; }
 function pd(v) { if (!v) return null; if (v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate()); const p = new Date(v); return isNaN(p) ? null : new Date(p.getFullYear(), p.getMonth(), p.getDate()); }
 function tv(v) { return v == null ? '' : String(v).trim(); }
 function tokens(v) { return tv(v).split(',').map(x => x.trim()).filter(Boolean); }
@@ -634,12 +683,10 @@ function showValBanner() {
 
 /* ════════════ FILTER DROPDOWNS ════════════ */
 function hydrateDropdowns() {
-  const brands = uniq(S.campaigns.map(c => c.brand));
-  const offers = uniq(S.campaigns.map(c => c.offerType));
-  const auds = uniq(S.campaigns.flatMap(c => c.audience));
+  const brands = uniq(S.campaigns.map(c => c.brand).filter(Boolean));
+  const offers = uniq(S.campaigns.map(c => c.offerType).filter(Boolean));
   buildList('brandList', brands, 'brand');
   buildList('offerList', offers, 'offer');
-  buildList('audList', auds, 'aud');
   buildLegend(brands);
 }
 
@@ -651,7 +698,20 @@ function buildList(listId, items, key) {
     div.className = 'ms-item';
     div.dataset.val = val;
     div.dataset.key = key;
-    div.innerHTML = `<input type="checkbox" data-key="${key}" data-val="${esc(val)}"><span>${esc(val)}</span>`;
+    const cbId = `cb-${key}-${val.replace(/\s+/g,'_')}`;
+    div.innerHTML = `<input type="checkbox" id="${cbId}" data-key="${key}" data-val="${esc(val)}"><label for="${cbId}" style="cursor:pointer;flex:1">${esc(val)}</label>`;
+    // Clicking anywhere on the row toggles it
+    div.addEventListener('click', e => {
+      if (e.target.tagName === 'INPUT') return; // let checkbox handle itself
+      const cb = div.querySelector('input');
+      cb.checked = !cb.checked;
+      if (cb.checked) S.filters[key].add(val);
+      else S.filters[key].delete(val);
+      updateListState(listId, key);
+      updateTriggerText(key);
+      updateFilterCount();
+      refresh();
+    });
     div.querySelector('input').addEventListener('change', e => {
       if (e.target.checked) S.filters[key].add(val);
       else S.filters[key].delete(val);
@@ -693,15 +753,15 @@ function updateTriggerText(key) {
 }
 
 function updateFilterCount() {
-  const total = S.filters.brand.size + S.filters.offer.size + S.filters.aud.size + (S.filters.search ? 1 : 0);
+  const total = S.filters.brand.size + S.filters.offer.size + (S.filters.aud !== 'all' ? 1 : 0) + (S.filters.search ? 1 : 0);
   const el = $('filterCount');
   el.textContent = total;
   el.classList.toggle('on', total > 0);
 }
 
 function bindDropdowns() {
-  // Toggle open/close
-  [['brandTrig','brandDd','brandWrap'],['offerTrig','offerDd','offerWrap'],['audTrig','audDd','audWrap']].forEach(([tId, ddId, wId]) => {
+  // Toggle open/close — brand and offer only (audience is toggle buttons now)
+  [['brandTrig','brandDd'],['offerTrig','offerDd']].forEach(([tId, ddId]) => {
     $(tId).addEventListener('click', e => { e.stopPropagation(); toggleDd(ddId, tId); });
   });
   // All / Clear
@@ -712,10 +772,10 @@ function bindDropdowns() {
       if (btn.classList.contains('ms-clr')) {
         S.filters[key].clear();
       } else {
-        const map = { brand: 'brandList', offer: 'offerList', aud: 'audList' };
-        $(map[key]).querySelectorAll('.ms-item').forEach(item => S.filters[key].add(item.dataset.val));
+        const map = { brand: 'brandList', offer: 'offerList' };
+        $(map[key])?.querySelectorAll('.ms-item').forEach(item => S.filters[key].add(item.dataset.val));
       }
-      const listMap = { brand: 'brandList', offer: 'offerList', aud: 'audList' };
+      const listMap = { brand: 'brandList', offer: 'offerList' };
       updateListState(listMap[key], key);
       updateTriggerText(key);
       updateFilterCount();
@@ -723,7 +783,7 @@ function bindDropdowns() {
     });
   });
   // Inline search within dropdowns
-  [['brandSearch','brandList'],['offerSearch','offerList'],['audSearch','audList']].forEach(([sId, lId]) => {
+  [['brandSearch','brandList'],['offerSearch','offerList']].forEach(([sId, lId]) => {
     $(sId).addEventListener('input', () => {
       const q = $(sId).value.toLowerCase();
       $(lId).querySelectorAll('.ms-item').forEach(item => {
@@ -791,24 +851,43 @@ function bindFilters() {
   $('resetBtn').addEventListener('click', resetFilters);
   $('overlay').addEventListener('click', closeDetail);
   $('dsClose').addEventListener('click', closeDetail);
+
+  // Audience toggle buttons
+  document.querySelectorAll('.aud-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      S.filters.aud = btn.dataset.aud;
+      document.querySelectorAll('.aud-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+      updateFilterCount();
+      refresh();
+    });
+  });
 }
 
 function resetFilters() {
-  ['brand','offer','aud'].forEach(k => { S.filters[k].clear(); updateTriggerText(k); });
+  ['brand','offer'].forEach(k => { S.filters[k].clear(); updateTriggerText(k); });
+  S.filters.aud = 'all';
+  document.querySelectorAll('.aud-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.aud === 'all'));
   $('searchInput').value = ''; S.filters.search = '';
-  ['brandList','offerList','audList'].forEach(id => { updateListState(id, id.replace('List','')); });
+  ['brandList','offerList'].forEach((id, i) => { updateListState(id, ['brand','offer'][i]); });
   updateFilterCount();
   refresh();
 }
 
 /* ════════════ FILTER LOGIC ════════════ */
 function applyFilters() {
-  return S.campaigns.filter(c =>
-    (S.filters.brand.size === 0 || S.filters.brand.has(c.brand)) &&
-    (S.filters.offer.size === 0 || S.filters.offer.has(c.offerType)) &&
-    (S.filters.aud.size === 0 || c.audience.some(a => S.filters.aud.has(a))) &&
-    (!S.filters.search || c.name.toLowerCase().includes(S.filters.search))
-  );
+  return S.campaigns.filter(c => {
+    if (S.filters.brand.size > 0 && !S.filters.brand.has(c.brand)) return false;
+    if (S.filters.offer.size > 0 && !S.filters.offer.has(c.offerType)) return false;
+    if (S.filters.aud === 'new') {
+      const auds = c.audience.map(a => a.toLowerCase());
+      if (!auds.some(a => a.includes('new') || a.includes('conquest') || a.includes('prospect'))) return false;
+    } else if (S.filters.aud === 'existing') {
+      const auds = c.audience.map(a => a.toLowerCase());
+      if (!auds.some(a => a.includes('exist') || a.includes('retain') || a.includes('loyal') || a.includes('current'))) return false;
+    }
+    if (S.filters.search && !c.name.toLowerCase().includes(S.filters.search)) return false;
+    return true;
+  });
 }
 
 /* ════════════ RENDER ════════════ */
@@ -819,7 +898,7 @@ function refresh() {
   else renderQuarter();
 }
 
-/* ── MONTH VIEW with multi-day spanning ── */
+/* ── MONTH VIEW — true multi-day spanning via per-week overlay layers ── */
 function renderMonth() {
   const year = S.currentDate.getFullYear();
   const month = S.currentDate.getMonth();
@@ -831,7 +910,7 @@ function renderMonth() {
 
   const today = new Date(); today.setHours(0,0,0,0);
 
-  // Build 6-week grid (42 cells)
+  // 6-week grid
   const days = [];
   for (let i = 0; i < 42; i++) {
     const d = new Date(gridStart);
@@ -839,131 +918,145 @@ function renderMonth() {
     days.push(d);
   }
 
-  // For each campaign, figure out which grid columns (0-based day index) it spans
-  // We place events in rows to avoid overlap. Simple greedy placement.
-  // Each cell gets a list of "rows" — track which row is occupied on which day index.
-  const MAX_ROWS = 3;
-  const cellRows = Array.from({length: 42}, () => []); // cellRows[dayIdx] = array of campaignId or null per row
+  const MAX_EVT_ROWS = 3;
+  const CELL_HEADER_H = 28; // px reserved for the day number header
+  const EVT_H = 22;         // height of each event bar px
+  const EVT_GAP = 2;        // gap between bars px
 
-  // Sort filtered by start date, then duration desc
+  // Collect visible events
   const evts = S.filtered
-    .filter(c => {
-      // Only show if overlaps this month's grid
-      const gs = days[0], ge = days[41];
-      return c.endDate >= gs && c.startDate <= ge;
-    })
+    .filter(c => c.endDate >= days[0] && c.startDate <= days[41])
     .sort((a,b) => a.startDate - b.startDate || (b.endDate - b.startDate) - (a.endDate - a.startDate));
 
-  // For each event, find which day indices it spans within the grid
-  const placed = []; // { campaign, startIdx, endIdx, row }
-  const rowOccupied = Array.from({length: 42}, () => new Array(MAX_ROWS).fill(false));
+  // Greedy row placement across the full 42-day grid
+  const rowOccupied = Array.from({length: 42}, () => new Array(MAX_EVT_ROWS).fill(null));
+  const placed = [];
 
   evts.forEach(c => {
-    const startIdx = Math.max(0, daysBetween(days[0], c.startDate));
-    const endIdx = Math.min(41, daysBetween(days[0], c.endDate));
-    if (startIdx > 41 || endIdx < 0) return;
-    // Find a free row across all spanned days
+    const si = Math.max(0, daysBetween(days[0], c.startDate));
+    const ei = Math.min(41, daysBetween(days[0], c.endDate));
+    if (si > 41 || ei < 0) return;
     let row = -1;
-    for (let r = 0; r < MAX_ROWS; r++) {
+    for (let r = 0; r < MAX_EVT_ROWS; r++) {
       let free = true;
-      for (let di = startIdx; di <= endIdx; di++) {
-        if (rowOccupied[di][r]) { free = false; break; }
-      }
+      for (let di = si; di <= ei; di++) { if (rowOccupied[di][r]) { free = false; break; } }
       if (free) { row = r; break; }
     }
-    if (row === -1) {
-      // Mark as overflow in startIdx cell
-      placed.push({ campaign: c, startIdx, endIdx, row: 'overflow' });
-      return;
-    }
-    for (let di = startIdx; di <= endIdx; di++) rowOccupied[di][row] = c.id;
-    placed.push({ campaign: c, startIdx, endIdx, row });
+    if (row === -1) { placed.push({ c, si, ei, row: 'overflow' }); return; }
+    for (let di = si; di <= ei; di++) rowOccupied[di][row] = c.id;
+    placed.push({ c, si, ei, row });
   });
 
-  // Build overflow count map
-  const overflowMap = {}; // dayIdx => count
+  // Count overflow per start-day
+  const overflowMap = {};
   placed.filter(p => p.row === 'overflow').forEach(p => {
-    overflowMap[p.startIdx] = (overflowMap[p.startIdx] || 0) + 1;
+    overflowMap[p.si] = (overflowMap[p.si] || 0) + 1;
   });
 
-  // Render cells
+  // Determine cell min-height based on max concurrent events
+  const maxRowsInGrid = Math.max(0, ...Array.from({length: 42}, (_, di) =>
+    rowOccupied[di].filter(Boolean).length
+  ));
+  const cellMinH = CELL_HEADER_H + (Math.min(maxRowsInGrid, MAX_EVT_ROWS) * (EVT_H + EVT_GAP)) + 8;
+
+  // Render the 6 week rows, each as a position:relative container
+  // so event bars can be absolutely positioned across multiple day columns
   calGrid.innerHTML = '';
-  days.forEach((d, di) => {
-    const cell = document.createElement('div');
-    cell.className = 'day-cell';
-    if (d.getMonth() !== month) cell.classList.add('outside');
-    if (d.getTime() === today.getTime()) cell.classList.add('today');
 
-    const top = document.createElement('div');
-    top.className = 'day-top';
-    const num = document.createElement('div');
-    num.className = 'day-num';
-    num.textContent = d.getDate();
-    top.appendChild(num);
-    if (overflowMap[di]) {
-      const more = document.createElement('span');
-      more.className = 'day-more';
-      more.textContent = `+${overflowMap[di]} more`;
-      top.appendChild(more);
-    }
-    cell.appendChild(top);
+  for (let week = 0; week < 6; week++) {
+    const weekWrap = document.createElement('div');
+    weekWrap.className = 'week-row';
+    weekWrap.style.cssText = `
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      position: relative; grid-column: 1 / -1;
+      border-bottom: 1px solid var(--border);
+      min-height: ${cellMinH}px;
+    `;
 
-    const evtWrap = document.createElement('div');
-    evtWrap.className = 'day-events';
+    // Day cells (background + day number)
+    for (let dow = 0; dow < 7; dow++) {
+      const di = week * 7 + dow;
+      const d = days[di];
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+      cell.style.cssText = `
+        border-right: ${dow < 6 ? '1px solid var(--border)' : 'none'};
+        border-bottom: none; min-height: ${cellMinH}px;
+        padding: 0; position: relative; overflow: visible;
+      `;
+      if (d.getMonth() !== month) cell.classList.add('outside');
+      if (d.getTime() === today.getTime()) cell.classList.add('today');
 
-    // For each row slot, check if an event starts here
-    for (let r = 0; r < MAX_ROWS; r++) {
-      const evt = placed.find(p => p.row === r && p.startIdx === di);
-      if (evt) {
-        const blk = buildEventBlock(evt.campaign, di, evt.startIdx, evt.endIdx, days);
-        evtWrap.appendChild(blk);
-      } else if (rowOccupied[di][r] && rowOccupied[di][r] !== false) {
-        // Continuing span — render invisible spacer to maintain row alignment
-        const spacer = document.createElement('div');
-        spacer.className = 'evt-block span-mid';
-        spacer.style.opacity = '0';
-        spacer.style.pointerEvents = 'none';
-        spacer.textContent = '\u00A0';
-        evtWrap.appendChild(spacer);
+      const top = document.createElement('div');
+      top.className = 'day-top';
+      const num = document.createElement('div');
+      num.className = 'day-num';
+      num.textContent = d.getDate();
+      top.appendChild(num);
+      if (overflowMap[di]) {
+        const more = document.createElement('span');
+        more.className = 'day-more';
+        more.textContent = `+${overflowMap[di]} more`;
+        top.appendChild(more);
       }
+      cell.appendChild(top);
+      weekWrap.appendChild(cell);
     }
 
-    cell.appendChild(evtWrap);
-    calGrid.appendChild(cell);
-  });
-}
+    // Event bars: absolutely positioned over the week row
+    const weekPlaced = placed.filter(p => p.row !== 'overflow' && p.ei >= week * 7 && p.si <= week * 7 + 6);
+    weekPlaced.forEach(({ c, si, ei, row }) => {
+      // Clip to this week's columns
+      const colStart = Math.max(si, week * 7) - week * 7;        // 0–6
+      const colEnd   = Math.min(ei, week * 7 + 6) - week * 7;    // 0–6
+      const isRealStart = si >= week * 7;
+      const isRealEnd   = ei <= week * 7 + 6;
 
-function buildEventBlock(c, di, startIdx, endIdx, days) {
-  const colorClass = S.brandColorMap[c.brand] || 'brand-8';
-  const blk = document.createElement('div');
-  blk.className = `evt-block ${colorClass}`;
+      const top = CELL_HEADER_H + row * (EVT_H + EVT_GAP);
+      // left% = colStart/7 * 100, width% = (colEnd - colStart + 1)/7 * 100
+      const leftPct = (colStart / 7) * 100;
+      const widthPct = ((colEnd - colStart + 1) / 7) * 100;
 
-  // Spanning class
-  const isStart = (di === startIdx);
-  const isEnd = (di === endIdx) || (di % 7 === 6); // end of week row wraps
-  // For true multi-day, we extend visually only if same row/week
-  if (isStart && isEnd) blk.classList.add('span-start', 'span-end');
-  else if (isStart) blk.classList.add('span-start');
-  else if (isEnd) blk.classList.add('span-end');
-  else blk.classList.add('span-mid');
+      const colorClass = S.brandColorMap[c.brand] || 'brand-8';
+      const bar = document.createElement('div');
+      bar.className = `evt-bar ${colorClass}`;
+      bar.style.cssText = `
+        position: absolute;
+        top: ${top}px;
+        left: calc(${leftPct}% + ${isRealStart ? 3 : 0}px);
+        width: calc(${widthPct}% - ${isRealStart ? 3 : 0}px - ${isRealEnd ? 3 : 0}px);
+        height: ${EVT_H}px;
+        border-radius: ${isRealStart ? '4px' : '0'} ${isRealEnd ? '4px' : '0'} ${isRealEnd ? '4px' : '0'} ${isRealStart ? '4px' : '0'};
+        display: flex; align-items: center; gap: 5px;
+        padding: 0 7px;
+        overflow: hidden;
+        cursor: pointer;
+        z-index: 2;
+        font-size: 11px; font-weight: 600; line-height: 1.1;
+        white-space: nowrap;
+        transition: filter .12s, transform .08s;
+        box-sizing: border-box;
+      `;
+      if (isRealStart) {
+        bar.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(c.name)}</span>`;
+        if (si !== ei) {
+          bar.innerHTML += `<span style="font-size:10px;opacity:.7;flex-shrink:0">${fmtDateShort(c.startDate)}–${fmtDateShort(c.endDate)}</span>`;
+        }
+      }
+      bar.addEventListener('mouseenter', () => { bar.style.filter = 'brightness(0.9)'; bar.style.transform = 'translateY(-1px)'; });
+      bar.addEventListener('mouseleave', () => { bar.style.filter = ''; bar.style.transform = ''; });
+      bar.addEventListener('click', () => openDetail(c));
+      weekWrap.appendChild(bar);
+    });
 
-  // Only show text on start cell
-  if (di === startIdx) {
-    const nameEl = document.createElement('span');
-    nameEl.className = 'evt-name';
-    nameEl.textContent = c.name;
-    blk.appendChild(nameEl);
-    if (endIdx > startIdx) {
-      const metaEl = document.createElement('span');
-      metaEl.className = 'evt-meta';
-      metaEl.textContent = `${fmtDateShort(c.startDate)} – ${fmtDateShort(c.endDate)}`;
-      blk.appendChild(metaEl);
-    }
+    calGrid.appendChild(weekWrap);
   }
 
-  blk.addEventListener('click', () => openDetail(c));
-  return blk;
+  // Fix calGrid to use single column so week rows stack
+  calGrid.style.gridTemplateColumns = '1fr';
 }
+
+function buildEventBlock() {} // unused — kept for compatibility
 
 function daysBetween(a, b) {
   return Math.round((b.getTime() - a.getTime()) / DAY_MS);
@@ -1008,42 +1101,45 @@ function renderQuarter() {
 /* ════════════ DETAIL SIDEBAR ════════════ */
 function openDetail(c) {
   S.selectedId = c.id;
-  const colorClass = S.brandColorMap[c.brand] || 'brand-8';
   const colorIdx = S.brandIndex[c.brand] || 0;
   const accent = SWATCH_COLORS[colorIdx];
 
   const badge = $('dsBadge');
-  badge.textContent = c.brand;
-  badge.style.background = accent + '20';
+  badge.textContent = c.brand || 'Campaign';
+  badge.style.background = accent + '22';
   badge.style.color = accent;
-  badge.style.border = `1px solid ${accent}40`;
+  badge.style.border = `1px solid ${accent}44`;
 
   $('dsTitle').textContent = c.name;
   $('dsSub').textContent = `${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}`;
 
+  // Helper: a value is "present" if it's a non-empty string or non-empty array
+  const present = v => Array.isArray(v) ? v.length > 0 : (v && v.trim() !== '');
+
   const rows = [
-    ['Offer Type', c.offerType],
-    ['Offer Subtype', c.offerSubtype],
-    ['Stage', c.stage],
-    ['Status', c.status],
-    ['Audience', c.audience],
-    ['Product / Service', c.productService.length ? c.productService : null],
-    ['Assigned', c.assigned.length ? c.assigned : null],
-    ['Target Launch', c.targetLaunch ? fmtDate(c.targetLaunch) : null],
-    ['Subitems', c.subitems || null],
+    ['Brand',           c.brand],
+    ['Offer Type',      c.offerType],
+    ['Offer Subtype',   c.offerSubtype],
+    ['Stage',           c.stage],
+    ['Status',          c.status],
+    ['Audience',        c.audience],
+    ['Product / Service', c.productService],
+    ['Assigned',        c.assigned],
+    ['Target Launch',   c.targetLaunch ? fmtDate(c.targetLaunch) : ''],
+    ['Subitems',        c.subitems],
   ];
 
   $('dsBody').innerHTML = rows
-    .filter(([, v]) => v !== null && v !== '' && v !== 'Unspecified')
+    .filter(([, v]) => present(v))
     .map(([label, val]) => {
       const isArr = Array.isArray(val);
       const content = isArr
-        ? val.map(t => `<span class="ds-tag">${esc(t)}</span>`).join('')
+        ? `<div style="margin-top:4px">${val.map(t => `<span class="ds-tag">${esc(t)}</span>`).join('')}</div>`
         : `<span class="ds-row-val">${esc(String(val))}</span>`;
-      return `<div class="ds-row"><div class="ds-row-label">${esc(label)}</div>${isArr ? `<div style="margin-top:4px">${content}</div>` : content}</div>`;
+      return `<div class="ds-row"><div class="ds-row-label">${esc(label)}</div>${content}</div>`;
     }).join('');
 
-  $('dsFooter').innerHTML = `Campaign ${S.filtered.indexOf(c)+1} of ${S.filtered.length} shown`;
+  $('dsFooter').innerHTML = `Campaign ${S.filtered.indexOf(c) + 1} of ${S.filtered.length} shown`;
 
   overlay.classList.add('on');
   sidebar.classList.add('on');
