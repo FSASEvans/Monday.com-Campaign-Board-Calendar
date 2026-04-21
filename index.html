@@ -232,7 +232,39 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
 /* Spanning blocks hide border for mid/end */
 .evt-block.span-mid, .evt-block.span-end { border-left: none; border-left-width: 0; }
 
-/* ─── QUARTER VIEW ─── */
+/* ─── WEEK VIEW ─── */
+.week-view { flex: 1; padding: 16px 24px; display: flex; flex-direction: column; gap: 0; overflow: auto; }
+.week-grid-wrap { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-sm); background: var(--white); }
+.week-day-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.week-day-col {
+  border-right: 1px solid var(--border); min-height: 200px;
+  display: flex; flex-direction: column;
+}
+.week-day-col:last-child { border-right: none; }
+.week-day-col.today { background: #FDF2F4; }
+.week-day-col.outside { background: #FAFAFA; }
+.week-day-hdr {
+  padding: 10px 10px 8px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;
+}
+.week-day-name { font-size: 11px; font-weight: 700; color: var(--text-m); letter-spacing: .06em; text-transform: uppercase; }
+.week-day-num {
+  font-family: var(--font); font-size: 26px; font-weight: 700; color: var(--text-1);
+  line-height: 1; letter-spacing: -.02em;
+}
+.week-day-col.today .week-day-num { color: var(--red); }
+.week-day-count { font-size: 10px; color: var(--text-m); font-weight: 500; margin-top: 1px; }
+.week-day-events { padding: 6px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.week-evt {
+  padding: 6px 8px; border-radius: var(--r-sm); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: filter .12s, transform .08s;
+  border-left: 3px solid transparent; display: flex; flex-direction: column; gap: 2px;
+  line-height: 1.3;
+}
+.week-evt:hover { filter: brightness(.9); transform: translateY(-1px); }
+.week-evt-name { font-weight: 700; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.week-evt-meta { font-size: 10px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.week-empty { padding: 12px 8px; font-size: 11px; color: var(--text-m); text-align: center; }
 .quarter-view { flex: 1; padding: 16px 24px; }
 .quarter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .q-month-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); overflow: hidden; }
@@ -435,6 +467,7 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
       <div class="cal-title" id="calTitle">Loading…</div>
       <div class="result-count" id="resultCount"></div>
       <div class="view-toggle">
+        <button class="view-btn" id="weekViewBtn">Week</button>
         <button class="view-btn active" id="monthViewBtn">Month</button>
         <button class="view-btn" id="quarterViewBtn">Quarter</button>
       </div>
@@ -460,6 +493,15 @@ body { font-family: var(--font-b); background: var(--bg); color: var(--text-1); 
     <!-- Quarter view -->
     <div class="quarter-view hidden" id="quarterView">
       <div class="quarter-grid" id="quarterGrid"></div>
+    </div>
+
+    <!-- Week view -->
+    <div class="week-view hidden" id="weekView">
+      <div class="week-grid-wrap">
+        <div class="dow-row" id="weekDowRow"></div>
+        <div class="week-day-grid" id="weekDayGrid"></div>
+      </div>
+      <div class="legend-strip" id="legendStripWeek"></div>
     </div>
 
     <!-- Loading / error -->
@@ -892,13 +934,19 @@ function bindNav() {
   $('prevBtn').addEventListener('click', () => { nudge(-1); });
   $('nextBtn').addEventListener('click', () => { nudge(1); });
   $('todayBtn').addEventListener('click', () => { S.currentDate = new Date(); refresh(); });
+  $('weekViewBtn').addEventListener('click', () => setView('week'));
   $('monthViewBtn').addEventListener('click', () => setView('month'));
   $('quarterViewBtn').addEventListener('click', () => setView('quarter'));
 }
 
 function nudge(dir) {
   const d = S.currentDate;
-  if (S.viewMode === 'month') {
+  if (S.viewMode === 'week') {
+    // Move by 7 days
+    const next = new Date(d);
+    next.setDate(next.getDate() + dir * 7);
+    S.currentDate = next;
+  } else if (S.viewMode === 'month') {
     S.currentDate = new Date(d.getFullYear(), d.getMonth() + dir, 1);
   } else {
     S.currentDate = new Date(d.getFullYear(), d.getMonth() + dir * 3, 1);
@@ -908,8 +956,10 @@ function nudge(dir) {
 
 function setView(v) {
   S.viewMode = v;
+  $('weekViewBtn').classList.toggle('active', v === 'week');
   $('monthViewBtn').classList.toggle('active', v === 'month');
   $('quarterViewBtn').classList.toggle('active', v === 'quarter');
+  $('weekView').classList.toggle('hidden', v !== 'week');
   monthViewEl.classList.toggle('hidden', v !== 'month');
   quarterViewEl.classList.toggle('hidden', v !== 'quarter');
   refresh();
@@ -967,23 +1017,22 @@ function applyFilters() {
 function refresh() {
   S.filtered = applyFilters();
   resultCount.textContent = `${S.filtered.length} campaign${S.filtered.length !== 1 ? 's' : ''} shown`;
-  if (S.viewMode === 'month') renderMonth();
+  if (S.viewMode === 'week') renderWeek();
+  else if (S.viewMode === 'month') renderMonth();
   else renderQuarter();
 }
 
-/* ── MONTH VIEW — true multi-day spanning via per-week overlay layers ── */
+/* ── MONTH VIEW — auto-expanding, no overflow cap ── */
 function renderMonth() {
-  const year = S.currentDate.getFullYear();
+  const year  = S.currentDate.getFullYear();
   const month = S.currentDate.getMonth();
   calTitle.innerHTML = `${S.currentDate.toLocaleString('default',{month:'long'})} <span>${year}</span>`;
 
   const monthStart = new Date(year, month, 1);
-  const gridStart = new Date(monthStart);
+  const gridStart  = new Date(monthStart);
   gridStart.setDate(gridStart.getDate() - monthStart.getDay());
-
   const today = new Date(); today.setHours(0,0,0,0);
 
-  // 6-week grid
   const days = [];
   for (let i = 0; i < 42; i++) {
     const d = new Date(gridStart);
@@ -991,188 +1040,258 @@ function renderMonth() {
     days.push(d);
   }
 
-  const MAX_EVT_ROWS = 3;
-  const CELL_HEADER_H = 28; // px reserved for the day number header
-  const EVT_H = 22;         // height of each event bar px
-  const EVT_GAP = 2;        // gap between bars px
+  const CELL_HDR_H = 28;
+  const EVT_H      = 22;
+  const EVT_GAP    = 2;
+  const PAD_BOT    = 6;
 
-  // Collect visible events
   const evts = S.filtered
     .filter(c => c.endDate >= days[0] && c.startDate <= days[41])
     .sort((a,b) => a.startDate - b.startDate || (b.endDate - b.startDate) - (a.endDate - a.startDate));
 
-  // Greedy row placement across the full 42-day grid
-  const rowOccupied = Array.from({length: 42}, () => new Array(MAX_EVT_ROWS).fill(null));
+  // Unlimited greedy row placement — no cap, no overflow bucket
+  const rowOccupied = Array.from({length: 42}, () => []);
   const placed = [];
 
   evts.forEach(c => {
     const si = Math.max(0, daysBetween(days[0], c.startDate));
     const ei = Math.min(41, daysBetween(days[0], c.endDate));
     if (si > 41 || ei < 0) return;
-    let row = -1;
-    for (let r = 0; r < MAX_EVT_ROWS; r++) {
-      let free = true;
-      for (let di = si; di <= ei; di++) { if (rowOccupied[di][r]) { free = false; break; } }
-      if (free) { row = r; break; }
+    let row = 0;
+    outer: while (true) {
+      for (let di = si; di <= ei; di++) {
+        if (rowOccupied[di][row]) { row++; continue outer; }
+      }
+      break;
     }
-    if (row === -1) { placed.push({ c, si, ei, row: 'overflow' }); return; }
     for (let di = si; di <= ei; di++) rowOccupied[di][row] = c.id;
     placed.push({ c, si, ei, row });
   });
 
-  // Count overflow per start-day
-  const overflowMap = {};
-  placed.filter(p => p.row === 'overflow').forEach(p => {
-    overflowMap[p.si] = (overflowMap[p.si] || 0) + 1;
+  // Per-week max row → drives each week row's height independently
+  const weekMaxRow = Array.from({length: 6}, (_, week) => {
+    let max = -1;
+    for (let di = week * 7; di < week * 7 + 7; di++) {
+      rowOccupied[di].forEach((v, r) => { if (v) max = Math.max(max, r); });
+    }
+    return max;
   });
 
-  // Determine cell min-height based on max concurrent events
-  const maxRowsInGrid = Math.max(0, ...Array.from({length: 42}, (_, di) =>
-    rowOccupied[di].filter(Boolean).length
-  ));
-  const cellMinH = CELL_HEADER_H + (Math.min(maxRowsInGrid, MAX_EVT_ROWS) * (EVT_H + EVT_GAP)) + 8;
-
-  // Render the 6 week rows, each as a position:relative container
-  // so event bars can be absolutely positioned across multiple day columns
   calGrid.innerHTML = '';
+  calGrid.style.gridTemplateColumns = '1fr';
 
   for (let week = 0; week < 6; week++) {
+    const rowCount = weekMaxRow[week] + 1;
+    const cellH    = CELL_HDR_H + (rowCount * (EVT_H + EVT_GAP)) + PAD_BOT;
+
     const weekWrap = document.createElement('div');
     weekWrap.className = 'week-row';
-    weekWrap.style.cssText = `
-      display: grid; grid-template-columns: repeat(7, 1fr);
-      position: relative; grid-column: 1 / -1;
-      border-bottom: 1px solid var(--border);
-      min-height: ${cellMinH}px;
-    `;
+    weekWrap.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);position:relative;border-bottom:1px solid var(--border);min-height:${cellH}px;`;
 
-    // Day cells (background + day number)
     for (let dow = 0; dow < 7; dow++) {
-      const di = week * 7 + dow;
-      const d = days[di];
+      const di   = week * 7 + dow;
+      const d    = days[di];
       const cell = document.createElement('div');
       cell.className = 'day-cell';
-      cell.style.cssText = `
-        border-right: ${dow < 6 ? '1px solid var(--border)' : 'none'};
-        border-bottom: none; min-height: ${cellMinH}px;
-        padding: 0; position: relative; overflow: visible;
-      `;
+      cell.style.cssText = `border-right:${dow < 6 ? '1px solid var(--border)' : 'none'};border-bottom:none;min-height:${cellH}px;padding:0;position:relative;overflow:visible;`;
       if (d.getMonth() !== month) cell.classList.add('outside');
       if (d.getTime() === today.getTime()) cell.classList.add('today');
-
       const top = document.createElement('div');
       top.className = 'day-top';
       const num = document.createElement('div');
       num.className = 'day-num';
       num.textContent = d.getDate();
       top.appendChild(num);
-      if (overflowMap[di]) {
-        const more = document.createElement('span');
-        more.className = 'day-more';
-        more.textContent = `+${overflowMap[di]} more`;
-        top.appendChild(more);
-      }
       cell.appendChild(top);
       weekWrap.appendChild(cell);
     }
 
-    // Event bars: absolutely positioned over the week row
-    const weekPlaced = placed.filter(p => p.row !== 'overflow' && p.ei >= week * 7 && p.si <= week * 7 + 6);
-    weekPlaced.forEach(({ c, si, ei, row }) => {
-      // Clip to this week's columns
-      const colStart    = Math.max(si, week * 7) - week * 7;   // 0–6
-      const colEnd      = Math.min(ei, week * 7 + 6) - week * 7; // 0–6
-      const isRealStart = si >= week * 7;
-      const isRealEnd   = ei <= week * 7 + 6;
-      const isContinued = !isRealStart; // wraps from a prior week row
-      const isSingleDay = (si === ei);
-
-      const topPx      = CELL_HEADER_H + row * (EVT_H + EVT_GAP);
-      const leftPct    = (colStart / 7) * 100;
-      const widthPct   = ((colEnd - colStart + 1) / 7) * 100;
-      const padL       = isRealStart ? 3 : 0;
-      const padR       = isRealEnd   ? 3 : 0;
-
-      // Audience color: overrides brand color as a left-border accent + light bg tint
-      const audType  = getAudType(c);
-      const audColor = AUD_COLORS[audType];
-      const brandClass = S.brandColorMap[c.brand] || 'brand-8';
-
-      const bar = document.createElement('div');
-      // Use brand class for base colors; audience tints override via inline style when applicable
-      bar.className = `evt-bar ${audType !== 'none' ? '' : brandClass}`;
-
-      // Audience-based color override (teal/violet/amber tint)
-      let inlineColor = '';
-      if (audType !== 'none' && audColor.bg) {
-        inlineColor = `background:${audColor.bg}; border-left-color:${audColor.border}; color:${audColor.text};`;
-      }
-
-      // Corner rounding: square the edges that connect to continuation
-      const rTL = isRealStart  ? '4px' : '0';
-      const rBL = isRealStart  ? '4px' : '0';
-      const rTR = isRealEnd    ? '4px' : '0';
-      const rBR = isRealEnd    ? '4px' : '0';
-
-      bar.style.cssText = `
-        position: absolute;
-        top: ${topPx}px;
-        left: calc(${leftPct}% + ${padL}px);
-        width: calc(${widthPct}% - ${padL}px - ${padR}px);
-        height: ${EVT_H}px;
-        border-radius: ${rTL} ${rTR} ${rBR} ${rBL};
-        border-left: 3px solid transparent;
-        display: flex; align-items: center;
-        justify-content: ${isSingleDay ? 'center' : 'flex-start'};
-        gap: 4px;
-        padding: 0 ${isSingleDay ? 4 : 7}px;
-        overflow: hidden;
-        cursor: pointer;
-        z-index: 2;
-        font-size: 11px; font-weight: 600; line-height: 1.1;
-        white-space: nowrap;
-        transition: filter .12s, transform .08s;
-        box-sizing: border-box;
-        ${inlineColor}
-      `;
-
-      // Audience color dot
-      const dotColor = audType === 'new' ? '#0D9488' : audType === 'existing' ? '#7C3AED' : audType === 'both' ? '#D97706' : null;
-      if (dotColor) {
-        const dot = document.createElement('span');
-        dot.className = 'aud-dot';
-        dot.style.cssText = `background:${dotColor}; flex-shrink:0;`;
-        bar.appendChild(dot);
-      }
-
-      // Name: always shown — prefix with ◀ arrow if this is a continuation from prior week
-      const nameSpan = document.createElement('span');
-      nameSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;';
-      nameSpan.textContent = (isContinued ? '← ' : '') + c.name;
-      bar.appendChild(nameSpan);
-
-      // Date range on the end segment (if multi-day and has room)
-      if (!isSingleDay && isRealEnd && (colEnd - colStart) >= 1) {
-        const dateSpan = document.createElement('span');
-        dateSpan.style.cssText = 'font-size:10px; opacity:.7; flex-shrink:0; margin-left:4px;';
-        dateSpan.textContent = `${fmtDateShort(c.startDate)}–${fmtDateShort(c.endDate)}`;
-        bar.appendChild(dateSpan);
-      }
-
-      bar.addEventListener('mouseenter', () => { bar.style.filter = 'brightness(0.88)'; bar.style.transform = 'translateY(-1px)'; });
-      bar.addEventListener('mouseleave', () => { bar.style.filter = ''; bar.style.transform = ''; });
-      bar.addEventListener('click', () => openDetail(c));
-      weekWrap.appendChild(bar);
+    // Event bars
+    placed.filter(p => p.ei >= week * 7 && p.si <= week * 7 + 6).forEach(({ c, si, ei, row }) => {
+      weekWrap.appendChild(makeBar(c, si, ei, row, week, CELL_HDR_H, EVT_H, EVT_GAP));
     });
 
     calGrid.appendChild(weekWrap);
   }
-
-  // Fix calGrid to use single column so week rows stack
-  calGrid.style.gridTemplateColumns = '1fr';
 }
 
-function buildEventBlock() {} // unused — kept for compatibility
+function buildEventBlock() {} // unused stub
+
+/* Shared bar builder — used by renderMonth and renderWeek */
+function makeBar(c, si, ei, row, week, CELL_HDR_H, EVT_H, EVT_GAP) {
+  const colStart    = Math.max(si, week * 7) - week * 7;
+  const colEnd      = Math.min(ei, week * 7 + 6) - week * 7;
+  const isRealStart = si >= week * 7;
+  const isRealEnd   = ei <= week * 7 + 6;
+  const isContinued = !isRealStart;
+  const isSingleDay = si === ei;
+
+  const topPx    = CELL_HDR_H + row * (EVT_H + EVT_GAP);
+  const leftPct  = (colStart / 7) * 100;
+  const widthPct = ((colEnd - colStart + 1) / 7) * 100;
+  const padL     = isRealStart ? 3 : 0;
+  const padR     = isRealEnd   ? 3 : 0;
+
+  const audType    = getAudType(c);
+  const audColor   = AUD_COLORS[audType];
+  const brandClass = S.brandColorMap[c.brand] || 'brand-8';
+
+  const bar = document.createElement('div');
+  bar.className = `evt-bar ${audType !== 'none' ? '' : brandClass}`;
+
+  let inlineColor = '';
+  if (audType !== 'none' && audColor.bg) {
+    inlineColor = `background:${audColor.bg};border-left-color:${audColor.border};color:${audColor.text};`;
+  }
+
+  bar.style.cssText = `
+    position:absolute;
+    top:${topPx}px;
+    left:calc(${leftPct}% + ${padL}px);
+    width:calc(${widthPct}% - ${padL}px - ${padR}px);
+    height:${EVT_H}px;
+    border-radius:${isRealStart?'4px':'0'} ${isRealEnd?'4px':'0'} ${isRealEnd?'4px':'0'} ${isRealStart?'4px':'0'};
+    border-left:3px solid transparent;
+    display:flex;align-items:center;
+    justify-content:${isSingleDay?'center':'flex-start'};
+    gap:4px;padding:0 ${isSingleDay?4:7}px;
+    overflow:hidden;cursor:pointer;z-index:2;
+    font-size:11px;font-weight:600;line-height:1.1;white-space:nowrap;
+    transition:filter .12s,transform .08s;box-sizing:border-box;
+    ${inlineColor}
+  `;
+
+  const dotColor = audType === 'new' ? '#0D9488' : audType === 'existing' ? '#7C3AED' : audType === 'both' ? '#D97706' : null;
+  if (dotColor) {
+    const dot = document.createElement('span');
+    dot.className = 'aud-dot';
+    dot.style.cssText = `background:${dotColor};flex-shrink:0;`;
+    bar.appendChild(dot);
+  }
+
+  const nameSpan = document.createElement('span');
+  nameSpan.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;';
+  nameSpan.textContent = (isContinued ? '← ' : '') + c.name;
+  bar.appendChild(nameSpan);
+
+  if (!isSingleDay && isRealEnd && (colEnd - colStart) >= 1) {
+    const dateSpan = document.createElement('span');
+    dateSpan.style.cssText = 'font-size:10px;opacity:.7;flex-shrink:0;margin-left:4px;';
+    dateSpan.textContent = `${fmtDateShort(c.startDate)}–${fmtDateShort(c.endDate)}`;
+    bar.appendChild(dateSpan);
+  }
+
+  bar.addEventListener('mouseenter', () => { bar.style.filter = 'brightness(0.88)'; bar.style.transform = 'translateY(-1px)'; });
+  bar.addEventListener('mouseleave', () => { bar.style.filter = ''; bar.style.transform = ''; });
+  bar.addEventListener('click', () => openDetail(c));
+  return bar;
+}
+
+/* ── WEEK VIEW — single 7-day week, full campaign cards per day ── */
+function renderWeek() {
+  const d = S.currentDate;
+  // Snap to the Sunday of the current week
+  const weekStart = new Date(d);
+  weekStart.setDate(d.getDate() - d.getDay());
+  weekStart.setHours(0,0,0,0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const DOW_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+  // Title: "Apr 19 – Apr 25, 2026"
+  calTitle.innerHTML = `${fmtDateShort(weekStart)} – ${fmtDateShort(weekEnd)}, <span>${weekStart.getFullYear()}</span>`;
+
+  // Build day array
+  const days = Array.from({length: 7}, (_, i) => {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    return day;
+  });
+
+  // Campaigns active any day this week
+  const weekEvts = S.filtered
+    .filter(c => c.endDate >= weekStart && c.startDate <= weekEnd)
+    .sort((a,b) => a.startDate - b.startDate || (b.endDate - b.startDate) - (a.endDate - a.startDate));
+
+  // DOW header row
+  const dowRow = $('weekDowRow');
+  dowRow.innerHTML = '';
+  days.forEach((day, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'dow-cell' + (i === 6 ? ' weekend' : '');
+    cell.textContent = DOW_NAMES[i].slice(0,3).toUpperCase();
+    dowRow.appendChild(cell);
+  });
+
+  // Day columns
+  const grid = $('weekDayGrid');
+  grid.innerHTML = '';
+
+  days.forEach((day, col) => {
+    const isToday   = day.getTime() === today.getTime();
+    const isWeekend = col === 0 || col === 6;
+
+    const dayCol = document.createElement('div');
+    dayCol.className = 'week-day-col' + (isToday ? ' today' : '') + (isWeekend ? ' outside' : '');
+
+    // Header: day name + date number + count
+    const dayEvts = weekEvts.filter(c => c.startDate <= day && c.endDate >= day);
+    const hdr = document.createElement('div');
+    hdr.className = 'week-day-hdr';
+    hdr.innerHTML = `
+      <div class="week-day-name">${DOW_NAMES[col]}</div>
+      <div class="week-day-num">${day.getDate()}</div>
+      ${dayEvts.length ? `<div class="week-day-count">${dayEvts.length} campaign${dayEvts.length!==1?'s':''}</div>` : ''}
+    `;
+    dayCol.appendChild(hdr);
+
+    // Events list
+    const evtList = document.createElement('div');
+    evtList.className = 'week-day-events';
+
+    if (dayEvts.length === 0) {
+      evtList.innerHTML = '<div class="week-empty">—</div>';
+    } else {
+      dayEvts.forEach(c => {
+        const audType    = getAudType(c);
+        const audColor   = AUD_COLORS[audType];
+        const brandClass = S.brandColorMap[c.brand] || 'brand-8';
+        const dotColor   = audType === 'new' ? '#0D9488' : audType === 'existing' ? '#7C3AED' : audType === 'both' ? '#D97706' : null;
+
+        const card = document.createElement('div');
+        card.className = `week-evt ${audType !== 'none' ? '' : brandClass}`;
+        if (audType !== 'none' && audColor.bg) {
+          card.style.cssText = `background:${audColor.bg};border-left-color:${audColor.border};color:${audColor.text};`;
+        }
+
+        const dotHtml = dotColor ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotColor};margin-right:4px;vertical-align:middle;flex-shrink:0"></span>` : '';
+
+        // Is the campaign starting, ending, or just passing through this day?
+        const startsHere = c.startDate.getTime() === day.getTime();
+        const endsHere   = c.endDate.getTime()   === day.getTime();
+        const isSingle   = startsHere && endsHere;
+        const spanLabel  = isSingle ? '' : startsHere ? `Starts · ends ${fmtDateShort(c.endDate)}` : endsHere ? `← Ends today · started ${fmtDateShort(c.startDate)}` : `← Ongoing · ${fmtDateShort(c.startDate)}–${fmtDateShort(c.endDate)}`;
+
+        card.innerHTML = `
+          <div class="week-evt-name">${dotHtml}${esc(c.name)}</div>
+          ${c.brand ? `<div class="week-evt-meta">${esc(c.brand)}${c.offerType ? ' · ' + esc(c.offerType) : ''}</div>` : ''}
+          ${spanLabel ? `<div class="week-evt-meta" style="opacity:.6">${esc(spanLabel)}</div>` : ''}
+        `;
+        card.addEventListener('click', () => openDetail(c));
+        evtList.appendChild(card);
+      });
+    }
+
+    dayCol.appendChild(evtList);
+    grid.appendChild(dayCol);
+  });
+
+  // Mirror brand legend into week view legend strip
+  const wStrip = $('legendStripWeek');
+  wStrip.innerHTML = $('legendStrip').innerHTML;
+}
 
 function daysBetween(a, b) {
   return Math.round((b.getTime() - a.getTime()) / DAY_MS);
