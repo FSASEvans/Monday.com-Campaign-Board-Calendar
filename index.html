@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMO Campaign Calendar</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div>
+      <h1>CMO Campaign Calendar</h1>
+      <p class="subtle">Interactive Monday.com export view</p>
+    </div>
+    <div class="top-actions">
+      <button id="prevMonthBtn" type="button">Previous</button>
+      <button id="todayBtn" type="button">Today</button>
+      <button id="nextMonthBtn" type="button">Next</button>
+      <button id="viewToggleBtn" type="button" class="secondary">Quarter View</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="filters-panel">
+      <h2>Filters</h2>
+      <label class="control-group">
+        <span>Search Campaign</span>
+        <input id="searchInput" type="text" placeholder="Search by name">
+      </label>
+      <label class="control-group">
+        <span>Brand</span>
+        <select id="brandFilter" multiple size="6"></select>
+      </label>
+      <label class="control-group">
+        <span>Offer Type</span>
+        <select id="offerTypeFilter" multiple size="6"></select>
+      </label>
+      <label class="control-group">
+        <span>Audience</span>
+        <select id="audienceFilter" multiple size="6"></select>
+      </label>
+      <div class="control-row">
+        <button id="resetFiltersBtn" type="button" class="secondary">Reset</button>
+      </div>
+      <p id="validationSummary" class="subtle"></p>
+      <p id="refreshInfo" class="subtle"></p>
+    </aside>
+
+    <section class="calendar-panel">
+      <div class="panel-header">
+        <h2 id="currentRangeLabel">Loading...</h2>
+        <p id="resultCountLabel" class="subtle"></p>
+      </div>
+
+      <section id="monthView" class="month-grid"></section>
+      <section id="quarterView" class="quarter-grid hidden"></section>
+    </section>
+
+    <aside id="detailsPane" class="details-panel">
+      <h2>Campaign Details</h2>
+      <div id="detailsContent" class="details-content">
+        <p class="subtle">Select a campaign to view details.</p>
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
